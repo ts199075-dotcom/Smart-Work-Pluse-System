@@ -97,17 +97,30 @@ const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function MemberAttendance() {
   const [selectedDay, setSelectedDay] = useState(26);
-  const [selectedMonth, setSelectedMonth] = useState("November 2026");
+  const [selectedMonth, setSelectedMonth] = useState("2026-12");
 
+  // Dynamic month information
+  const [year, month] = selectedMonth.split("-").map(Number);
+
+  const monthDate = new Date(year, month - 1, 1);
+
+  const monthLabel = monthDate.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  const firstDay = monthDate.getDay();
+  const startingOffset = (firstDay + 6) % 7;
+
+  // Selected attendance record
   const selectedRecord = attendanceData[selectedDay];
 
   // Build calendar days
-  const firstDay = new Date(2026, 10, 1).getDay();
-  const startingOffset = (firstDay + 6) % 7;
-
   const calendarDays = [
     ...Array(startingOffset).fill(null),
-    ...Array.from({ length: 30 }, (_, index) => index + 1),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
   ];
 
   while (calendarDays.length % 7 !== 0) {
@@ -115,6 +128,7 @@ function MemberAttendance() {
   }
 
   return (
+
     <Box sx={{ width: "100%", minWidth: 0 }}>
       {/* Page Header */}
       <Box
@@ -138,22 +152,25 @@ function MemberAttendance() {
         <FormControl size="small" sx={{ minWidth: 170 }}>
           <Select
             value={selectedMonth}
-            onChange={(event) => setSelectedMonth(event.target.value)}
+            onChange={(event) => {
+                setSelectedMonth(event.target.value);
+                setSelectedDay(1);
+            }}
             startAdornment={
-              <CalendarMonthRounded
+                <CalendarMonthRounded
                 sx={{ color: "#64748B", mr: 1, fontSize: 20 }}
-              />
+                />
             }
             sx={{
-              backgroundColor: "#FFFFFF",
-              borderRadius: "10px",
-              fontSize: 13,
+                backgroundColor: "#FFFFFF",
+                borderRadius: "10px",
+                fontSize: 13,
             }}
-          >
-            <MenuItem value="October 2026">October 2026</MenuItem>
-            <MenuItem value="November 2026">November 2026</MenuItem>
-            <MenuItem value="December 2026">December 2026</MenuItem>
-          </Select>
+            >
+            <MenuItem value="2026-10">October 2026</MenuItem>
+            <MenuItem value="2026-11">November 2026</MenuItem>
+            <MenuItem value="2026-12">December 2026</MenuItem>
+            </Select>
         </FormControl>
       </Box>
 
@@ -357,7 +374,7 @@ function MemberAttendance() {
           </Typography>
 
           <Typography fontSize={12} color="text.secondary" mb={2.5}>
-            {selectedMonth} · {selectedDay}
+            {monthLabel} · {selectedDay}
           </Typography>
 
           {selectedRecord ? (
