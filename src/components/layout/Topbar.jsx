@@ -31,6 +31,7 @@ function Topbar({
         backgroundColor: "#FFFFFF",
         color: "#172B4D",
         borderBottom: "1px solid #E2E8F0",
+        width: "100%",
       }}
     >
       <Toolbar
@@ -38,15 +39,17 @@ function Topbar({
           minHeight: "76px !important",
           px: { xs: 2, md: 4 },
           display: "flex",
+          flexDirection: "row",
+          flexWrap: "nowrap",
           justifyContent: "space-between",
+          alignItems: "center",
           gap: 2,
         }}
       >
-        {/* Page Information */}
-        <Box>
+        {/* Breadcrumbs */}
+        <Box sx={{ minWidth: 0 }}>
           <Breadcrumbs
             separator={<NavigateNextRounded fontSize="small" />}
-            aria-label="breadcrumb"
           >
             <Link
               underline="hover"
@@ -57,14 +60,24 @@ function Topbar({
               Workspace
             </Link>
 
-            <Typography fontSize={12} color="text.primary" fontWeight={600}>
+            <Typography fontSize={12} fontWeight={600} color="text.primary">
               {pageTitle}
             </Typography>
           </Breadcrumbs>
         </Box>
 
-        {/* Right Actions */}
-        <Box display="flex" alignItems="center" gap={{ xs: 1, md: 2 }}>
+        {/* Actions */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "nowrap",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: { xs: 1, md: 2 },
+            flexShrink: 0,
+          }}
+        >
           {/* Search */}
           <Box
             sx={{
@@ -74,7 +87,7 @@ function Topbar({
               border: "1px solid #E2E8F0",
               borderRadius: "10px",
               px: 1.5,
-              width: { sm: 180, md: 240 },
+              width: { sm: 160, md: 240 },
               height: 40,
             }}
           >
@@ -89,15 +102,23 @@ function Topbar({
           {/* Notifications */}
           <IconButton
             aria-label="Notifications"
-            sx={{ color: "#64748B" }}
+            sx={{ color: "#64748B", flexShrink: 0 }}
           >
             <Badge badgeContent={3} color="error">
               <NotificationsNoneRounded />
             </Badge>
           </IconButton>
 
-          {/* User Profile */}
-          <Box display="flex" alignItems="center" gap={1.2}>
+          {/* Profile */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 1.2,
+              whiteSpace: "nowrap",
+            }}
+          >
             <Avatar
               sx={{
                 width: 38,
