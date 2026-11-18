@@ -2,9 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 import PlaceholderPage from "./components/common/PlaceholderPage";
+
 import MemberDashboard from "./features/member/dashboard/MemberDashboard";
 import MemberAttendance from "./features/member/attendance/MemberAttendance";
 import MemberOvertime from "./features/member/overtime/MemberOvertime";
+import MemberPayslip from "./features/member/payroll/MemberPayslip";
 
 import {
   USER_ROLES,
@@ -20,9 +22,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          element={<DashboardLayout role={CURRENT_ROLE} />}
-        >
+        <Route element={<DashboardLayout role={CURRENT_ROLE} />}>
           {/* Redirect root to Dashboard */}
           <Route
             path="/"
@@ -31,26 +31,28 @@ function App() {
 
           {/* Generate routes from role navigation */}
           {navigationItems.map((item) => (
-          <Route
-            key={item.path}
-            path={item.path.slice(1)}
-            element={
-              CURRENT_ROLE === USER_ROLES.MEMBER ? (
-                item.path === "/dashboard" ? (
-                  <MemberDashboard />
-                ) : item.path === "/attendance" ? (
-                  <MemberAttendance />
-                ) : item.path === "/overtime" ? (
-                  <MemberOvertime />
-                ) : ( 
+            <Route
+              key={item.path}
+              path={item.path.slice(1)}
+              element={
+                CURRENT_ROLE === USER_ROLES.MEMBER ? (
+                  item.path === "/dashboard" ? (
+                    <MemberDashboard />
+                  ) : item.path === "/attendance" ? (
+                    <MemberAttendance />
+                  ) : item.path === "/overtime" ? (
+                    <MemberOvertime />
+                  ) : item.path === "/payslip" ? (
+                    <MemberPayslip />
+                  ) : (
+                    <PlaceholderPage title={item.label} />
+                  )
+                ) : (
                   <PlaceholderPage title={item.label} />
                 )
-              ) : (
-                <PlaceholderPage title={item.label} />
-              )
-            }
-          />
-        ))}
+              }
+            />
+          ))}
 
           {/* Fallback route */}
           <Route
