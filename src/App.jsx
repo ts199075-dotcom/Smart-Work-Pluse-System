@@ -9,6 +9,8 @@ import MemberOvertime from "./features/member/overtime/MemberOvertime";
 import MemberPayslip from "./features/member/payroll/MemberPayslip";
 import MemberFinesRewards from "./features/member/cards-fines/MemberFinesRewards";
 import MemberProjectsTasks from "./features/member/tasks/MemberProjectsTasks";
+import MemberNotifications from "./features/member/notifications/MemberNotifications";
+
 
 import {
   USER_ROLES,
@@ -50,7 +52,9 @@ function App() {
                     <MemberFinesRewards />
                   ): item.path === "/projects" ? (
                     <MemberProjectsTasks />
-                  ): (
+                  ): item.path === "/notifications" ? (
+                    <MemberNotifications />
+                  ) : (
                     <PlaceholderPage title={item.label} />
                   )
                 ) : (
