@@ -7,6 +7,8 @@ import MemberDashboard from "./features/member/dashboard/MemberDashboard";
 import MemberAttendance from "./features/member/attendance/MemberAttendance";
 import MemberOvertime from "./features/member/overtime/MemberOvertime";
 import MemberPayslip from "./features/member/payroll/MemberPayslip";
+import MemberFinesRewards from "./features/member/cards-fines/MemberFinesRewards";
+
 
 import {
   USER_ROLES,
@@ -44,6 +46,8 @@ function App() {
                     <MemberOvertime />
                   ) : item.path === "/payslip" ? (
                     <MemberPayslip />
+                  ) : item.path === "/fines-rewards" ? (
+                    <MemberFinesRewards />
                   ) : (
                     <PlaceholderPage title={item.label} />
                   )
