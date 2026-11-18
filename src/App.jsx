@@ -4,7 +4,7 @@ import DashboardLayout from "./layouts/DashboardLayout";
 import PlaceholderPage from "./components/common/PlaceholderPage";
 import MemberDashboard from "./features/member/dashboard/MemberDashboard";
 import MemberAttendance from "./features/member/attendance/MemberAttendance";
-
+import MemberOvertime from "./features/member/overtime/MemberOvertime";
 
 import {
   USER_ROLES,
@@ -40,7 +40,9 @@ function App() {
                   <MemberDashboard />
                 ) : item.path === "/attendance" ? (
                   <MemberAttendance />
-                ) : (
+                ) : item.path === "/overtime" ? (
+                  <MemberOvertime />
+                ) : ( 
                   <PlaceholderPage title={item.label} />
                 )
               ) : (
