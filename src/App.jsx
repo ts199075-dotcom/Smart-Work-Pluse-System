@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 import PlaceholderPage from "./components/common/PlaceholderPage";
+import MemberDashboard from "./features/member/dashboard/MemberDashboard";
 
 import {
   USER_ROLES,
@@ -31,7 +32,13 @@ function App() {
             <Route
               key={item.path}
               path={item.path.slice(1)}
-              element={<PlaceholderPage title={item.label} />}
+              element={
+                item.path === "/dashboard" && CURRENT_ROLE === USER_ROLES.MEMBER ? (
+                  <MemberDashboard />
+                ) : (
+                  <PlaceholderPage title={item.label} />
+                )
+              }
             />
           ))}
 
