@@ -390,17 +390,37 @@ function MemberOvertime() {
               ))}
             </TextField>
 
+           <Box>
+            
+            <Typography
+                fontSize={12}
+                fontWeight={600}
+                color="text.secondary"
+                mb={0.75}
+            >
+                Date
+            </Typography>
+
             <TextField
-              fullWidth
-              size="small"
-              type="date"
-              label="Date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              InputLabelProps={{ shrink: true }}
-              required
+                fullWidth
+                size="small"
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+                sx={{
+                "& .MuiOutlinedInput-root": {
+                    borderRadius: "10px",
+                    backgroundColor: "#FFFFFF",
+                },
+                "& input": {
+                    fontSize: "13px",
+                    padding: "10px 12px",
+                },
+                }}
             />
+            </Box>
 
             <Box
               sx={{
