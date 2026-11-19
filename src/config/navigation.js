@@ -20,6 +20,7 @@ export const navigationConfig = {
     { label: "Dashboard", path: "/dashboard" },
     { label: "Projects", path: "/projects" },
     { label: "Teams", path: "/teams" },
+    { label: "Tasks", path: "/tasks" },
     { label: "Sprints", path: "/sprints" },
     { label: "Overtime", path: "/overtime" },
     { label: "My Attendance", path: "/attendance" },
