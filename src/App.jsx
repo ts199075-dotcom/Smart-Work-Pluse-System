@@ -22,7 +22,7 @@ import TeamLeaderPerformance from "./features/team-leader/performance/TeamLeader
 import TeamLeaderReports from "./features/team-leader/reports/TeamLeaderReports";
 import TeamLeaderOvertime from "./features/team-leader/overtime/TeamLeaderOvertime";
 import TeamLeaderAttendance from "./features/team-leader/attendance/TeamLeaderAttendance";
-
+import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints";
 
 import {
   USER_ROLES,
@@ -79,6 +79,9 @@ function getPageByRole(role, path, label) {
 
       case "/attendance":
          return <TeamLeaderAttendance />;  
+      
+      case "/sprints":
+       return <TeamLeaderSprints />;   
 
       default:
         return <PlaceholderPage title={label} />;
