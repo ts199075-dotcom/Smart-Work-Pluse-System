@@ -15,6 +15,7 @@ import MemberNotifications from "./features/member/notifications/MemberNotificat
 
 // Team Leader Pages
 import TeamLeaderDashboard from "./features/team-leader/dashboard/TeamLeaderDashboard";
+import TeamLeaderProjects from "./features/team-leader/projects/TeamLeaderProjects";
 
 import {
   USER_ROLES,
@@ -50,13 +51,17 @@ function getPageByRole(role, path, label) {
     switch (path) {
       case "/dashboard":
         return <TeamLeaderDashboard />;
+
+      case "/projects":
+        return <TeamLeaderProjects />;
+
       default:
         return <PlaceholderPage title={label} />;
     }
   }
 
-  return <PlaceholderPage title={label} />;
-}
+    return <PlaceholderPage title={label} />;
+  }
 
 function App() {
   const navigationItems = getNavigationByRole(CURRENT_ROLE);
