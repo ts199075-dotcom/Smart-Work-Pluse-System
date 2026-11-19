@@ -18,7 +18,7 @@ import TeamLeaderDashboard from "./features/team-leader/dashboard/TeamLeaderDash
 import TeamLeaderProjects from "./features/team-leader/projects/TeamLeaderProjects";
 import TeamLeaderTeams from "./features/team-leader/teams/TeamLeaderTeams";
 import TeamLeaderTasks from "./features/team-leader/tasks/TeamLeaderTasks";
-
+import TeamLeaderPerformance from "./features/team-leader/performance/TeamLeaderPerformance";
 
 import {
   USER_ROLES,
@@ -63,6 +63,9 @@ function getPageByRole(role, path, label) {
 
       case "/tasks":
         return <TeamLeaderTasks />;   
+
+      case "/performance":
+        return <TeamLeaderPerformance />;
 
       default:
         return <PlaceholderPage title={label} />;

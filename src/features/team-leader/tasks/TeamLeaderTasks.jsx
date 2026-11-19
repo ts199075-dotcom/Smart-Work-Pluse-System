@@ -546,13 +546,15 @@ function TeamLeaderTasks() {
               placeholder="Search tasks, projects or members..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchRounded color="action" />
-                  </InputAdornment>
-                ),
-              }}
+              slotProps={{
+                input: {
+                    startAdornment: (
+                    <InputAdornment position="start">
+                        <SearchRounded color="action" />
+                    </InputAdornment>
+                    ),
+                },
+             }}
             />
 
             <TextField
