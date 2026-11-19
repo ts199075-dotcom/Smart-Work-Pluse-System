@@ -43,7 +43,6 @@ const iconMap = {
   Projects: FolderRounded,
   Teams: GroupsRounded,
   Sprints: EventNoteRounded,
-  "My Attendance": AccessTimeRounded,
   Reports: AssessmentRounded,
   Employees: GroupsRounded,
   Attendance: AccessTimeRounded,
@@ -154,11 +153,11 @@ function Sidebar({ role = USER_ROLES.MEMBER }) {
               </ListItemIcon>
 
               <ListItemText
-                primary={item.label}
-                primaryTypographyProps={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                }}
+                primary={
+                  <Typography fontSize={13} fontWeight={500}>
+                    {item.label}
+                  </Typography>
+                }
               />
             </ListItemButton>
           );

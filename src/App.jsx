@@ -16,6 +16,7 @@ import MemberNotifications from "./features/member/notifications/MemberNotificat
 // Team Leader Pages
 import TeamLeaderDashboard from "./features/team-leader/dashboard/TeamLeaderDashboard";
 import TeamLeaderProjects from "./features/team-leader/projects/TeamLeaderProjects";
+import TeamLeaderTeams from "./features/team-leader/teams/TeamLeaderTeams";
 
 import {
   USER_ROLES,
@@ -54,6 +55,9 @@ function getPageByRole(role, path, label) {
 
       case "/projects":
         return <TeamLeaderProjects />;
+
+      case "/teams":
+         return <TeamLeaderTeams />;  
 
       default:
         return <PlaceholderPage title={label} />;
