@@ -1,3 +1,4 @@
+
 import {
   AppBar,
   Toolbar,
@@ -17,12 +18,21 @@ import {
   NavigateNextRounded,
 } from "@mui/icons-material";
 
+const ROLE_LABELS = {
+  member: "Member",
+  "team-leader": "Team Leader",
+  hr: "HR",
+  admin: "Admin",
+};
+
 function Topbar({
   pageTitle = "Dashboard",
   userName = "Sara Ahmed",
-  userRole = "Member",
+  role = "member",
   userInitials = "SA",
 }) {
+  const userRole = ROLE_LABELS[role] || role;
+
   return (
     <AppBar
       position="static"
@@ -70,8 +80,6 @@ function Topbar({
         <Box
           sx={{
             display: "flex",
-            flexDirection: "row",
-            flexWrap: "nowrap",
             alignItems: "center",
             justifyContent: "flex-end",
             gap: { xs: 1, md: 2 },
@@ -113,7 +121,6 @@ function Topbar({
           <Box
             sx={{
               display: "flex",
-              flexDirection: "row",
               alignItems: "center",
               gap: 1.2,
               whiteSpace: "nowrap",
