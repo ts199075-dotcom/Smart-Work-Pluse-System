@@ -470,10 +470,12 @@ function TeamLeaderOvertime() {
                     <TableCell align="center">
                       <Stack
                         direction="row"
-                        justifyContent="center"
-                        alignItems="center"
                         spacing={0.5}
-                      >
+                        sx={{
+                            justifyContent: "center",
+                            alignItems: "center",
+                        }}
+                     >
                         <IconButton
                           size="small"
                           onClick={() => setSelectedRequest(request)}
