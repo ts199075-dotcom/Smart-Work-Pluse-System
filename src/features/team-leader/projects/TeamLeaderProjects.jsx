@@ -1,4 +1,6 @@
+
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
   Box,
@@ -24,6 +26,7 @@ import {
   MenuItem,
   Stack,
   IconButton,
+  Menu,
 } from "@mui/material";
 
 import {
@@ -33,98 +36,66 @@ import {
   FolderOutlined,
 } from "@mui/icons-material";
 
-const initialProjects = [
-  {
-    id: 1,
-    name: "Website Redesign",
-    description: "Redesigning the company website.",
-    leader: "Ahmed Mohamed",
-    status: "In Progress",
-    startDate: "01 Oct 2026",
-    endDate: "30 Dec 2026",
-    progress: 65,
-  },
-  {
-    id: 2,
-    name: "Mobile Application",
-    description: "Developing the company mobile application.",
-    leader: "Sara Ali",
-    status: "Planning",
-    startDate: "15 Oct 2026",
-    endDate: "15 Jan 2027",
-    progress: 25,
-  },
-  {
-    id: 3,
-    name: "HR System",
-    description: "Building an internal HR management system.",
-    leader: "Mohamed Hassan",
-    status: "In Progress",
-    startDate: "01 Sep 2026",
-    endDate: "20 Dec 2026",
-    progress: 80,
-  },
-  {
-    id: 4,
-    name: "Internal Dashboard",
-    description: "Creating an internal analytics dashboard.",
-    leader: "Mona Ahmed",
-    status: "Completed",
-    startDate: "01 Jul 2026",
-    endDate: "30 Sep 2026",
-    progress: 100,
-  },
-  {
-    id: 5,
-    name: "Attendance System",
-    description: "Developing a smart attendance system.",
-    leader: "Omar Khaled",
-    status: "In Progress",
-    startDate: "10 Oct 2026",
-    endDate: "25 Dec 2026",
-    progress: 45,
-  },
-];
-
 const statusStyles = {
-  "In Progress": {
-    color: "#2563EB",
-    backgroundColor: "#DBEAFE",
-  },
-  Planning: {
-    color: "#B45309",
-    backgroundColor: "#FEF3C7",
-  },
-  Completed: {
-    color: "#15803D",
-    backgroundColor: "#DCFCE7",
-  },
-  "On Hold": {
-    color: "#64748B",
-    backgroundColor: "#F1F5F9",
-  },
+  "In Progress": { color: "#2563EB", backgroundColor: "#DBEAFE" },
+  Planning: { color: "#B45309", backgroundColor: "#FEF3C7" },
+  Completed: { color: "#15803D", backgroundColor: "#DCFCE7" },
+  "On Hold": { color: "#64748B", backgroundColor: "#F1F5F9" },
 };
 
-function TeamLeaderProjects() {
-  const [projects, setProjects] = useState(initialProjects);
+const emptyProject = {
+  name: "",
+  description: "",
+  leader: "",
+  startDate: "",
+  endDate: "",
+  status: "Planning",
+};
+
+const formatDate = (date) => {
+  if (!date) return "-";
+
+  return new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+function TeamLeaderProjects({
+  projects,
+  setProjects,
+  currentTeamLeader,
+}) {
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
+
   const [openDialog, setOpenDialog] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [form, setForm] = useState(emptyProject);
 
-  const [newProject, setNewProject] = useState({
-    name: "",
-    description: "",
-    leader: "",
-    startDate: "",
-    endDate: "",
-    status: "Planning",
-  });
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
 
+  const [deleteDialog, setDeleteDialog] = useState(false);
+
+  // Only show projects owned by the current team leader
+  const myProjects = useMemo(() => {
+    return projects.filter(
+      (project) => project.leader === currentTeamLeader
+    );
+  }, [projects, currentTeamLeader]);
+
+  // Search and tabs work only on the current team leader's projects
   const filteredProjects = useMemo(() => {
-    return projects.filter((project) => {
+    return myProjects.filter((project) => {
+      const searchValue = search.toLowerCase();
+
       const matchesSearch =
-        project.name.toLowerCase().includes(search.toLowerCase()) ||
-        project.leader.toLowerCase().includes(search.toLowerCase());
+        (project.name || "").toLowerCase().includes(searchValue) ||
+        (project.description || "").toLowerCase().includes(searchValue);
 
       const matchesTab =
         activeTab === "All" ||
@@ -133,55 +104,133 @@ function TeamLeaderProjects() {
 
       return matchesSearch && matchesTab;
     });
-  }, [projects, search, activeTab]);
+  }, [myProjects, search, activeTab]);
 
-  const handleAddProject = () => {
+  const activeCount = myProjects.filter(
+    (project) => project.status !== "Completed"
+  ).length;
+
+  const completedCount = myProjects.filter(
+    (project) => project.status === "Completed"
+  ).length;
+
+  const openAddDialog = () => {
+    setEditingProject(null);
+    setForm({
+      ...emptyProject,
+      leader: currentTeamLeader,
+    });
+    setOpenDialog(true);
+  };
+
+  const openEditDialog = () => {
+    if (!selectedProject) return;
+
+    setEditingProject(selectedProject);
+
+    setForm({
+      name: selectedProject.name,
+      description: selectedProject.description,
+      leader: currentTeamLeader,
+      startDate: selectedProject.startDate,
+      endDate: selectedProject.endDate,
+      status: selectedProject.status,
+    });
+
+    setMenuAnchor(null);
+    setOpenDialog(true);
+  };
+
+  const handleSaveProject = () => {
     if (
-      !newProject.name.trim() ||
-      !newProject.leader.trim() ||
-      !newProject.startDate ||
-      !newProject.endDate
+      !form.name.trim() ||
+      !form.startDate ||
+      !form.endDate ||
+      form.endDate < form.startDate
     ) {
       return;
     }
 
-    const project = {
-      id: Date.now(),
-      ...newProject,
-      startDate: new Date(newProject.startDate).toLocaleDateString(
-        "en-GB",
-        { day: "2-digit", month: "short", year: "numeric" }
-      ),
-      endDate: new Date(newProject.endDate).toLocaleDateString(
-        "en-GB",
-        { day: "2-digit", month: "short", year: "numeric" }
-      ),
-      progress: 0,
-    };
+    if (editingProject) {
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === editingProject.id &&
+          project.leader === currentTeamLeader
+            ? {
+                ...project,
+                name: form.name.trim(),
+                description: form.description.trim(),
+                startDate: form.startDate,
+                endDate: form.endDate,
+                status: form.status,
+                progress:
+                  form.status === "Completed"
+                    ? 100
+                    : form.status === "Planning"
+                      ? 0
+                      : project.progress === 100
+                        ? 0
+                        : project.progress,
+              }
+            : project
+        )
+      );
+    } else {
+      const newProject = {
+        id: Date.now(),
+        ...form,
+        name: form.name.trim(),
+        description: form.description.trim(),
+        leader: currentTeamLeader,
+        progress: 0,
+        members: [currentTeamLeader],
+        tasks: [],
+        activities: [
+          {
+            id: Date.now(),
+            title: "Project created",
+            user: currentTeamLeader,
+            date: form.startDate,
+          },
+        ],
+      };
 
-    setProjects((prev) => [project, ...prev]);
-    setNewProject({
-      name: "",
-      description: "",
-      leader: "",
-      startDate: "",
-      endDate: "",
-      status: "Planning",
-    });
+      setProjects((prev) => [newProject, ...prev]);
+    }
+
     setOpenDialog(false);
+    setForm(emptyProject);
+    setEditingProject(null);
   };
 
-  const activeCount = projects.filter(
-    (project) => project.status !== "Completed"
-  ).length;
+  const handleDeleteProject = () => {
+    if (!selectedProject) return;
 
-  const completedCount = projects.filter(
-    (project) => project.status === "Completed"
-  ).length;
+    setProjects((prev) =>
+      prev.filter(
+        (project) =>
+          project.id !== selectedProject.id ||
+          project.leader !== currentTeamLeader
+      )
+    );
+
+    setDeleteDialog(false);
+    setMenuAnchor(null);
+    setSelectedProject(null);
+  };
+
+  const openProjectMenu = (event, project) => {
+    event.stopPropagation();
+
+    if (project.leader !== currentTeamLeader) return;
+
+    setSelectedProject(project);
+    setMenuAnchor(event.currentTarget);
+  };
 
   return (
     <Box>
-      {/* Page Header */}
+      {/* Header */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
@@ -202,7 +251,7 @@ function TeamLeaderProjects() {
         <Button
           variant="contained"
           startIcon={<AddRounded />}
-          onClick={() => setOpenDialog(true)}
+          onClick={openAddDialog}
           sx={{
             backgroundColor: "#2563EB",
             borderRadius: "10px",
@@ -215,14 +264,11 @@ function TeamLeaderProjects() {
         </Button>
       </Stack>
 
-      {/* Summary Cards */}
+      {/* Summary */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(3, 1fr)",
-          },
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" },
           gap: 2,
           mb: 3,
         }}
@@ -230,7 +276,7 @@ function TeamLeaderProjects() {
         {[
           {
             title: "Total Projects",
-            value: projects.length,
+            value: myProjects.length,
             color: "#2563EB",
           },
           {
@@ -267,7 +313,7 @@ function TeamLeaderProjects() {
         ))}
       </Box>
 
-      {/* Projects Container */}
+      {/* Projects Table */}
       <Paper
         elevation={0}
         sx={{
@@ -276,7 +322,6 @@ function TeamLeaderProjects() {
           overflow: "hidden",
         }}
       >
-        {/* Filters */}
         <Box
           sx={{
             p: 2.5,
@@ -312,21 +357,20 @@ function TeamLeaderProjects() {
             onChange={(event) => setSearch(event.target.value)}
             sx={{
               width: { xs: "100%", md: 260 },
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "10px",
-              },
+              "& .MuiOutlinedInput-root": { borderRadius: "10px" },
             }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRounded color="action" />
-                </InputAdornment>
-              ),
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRounded color="action" />
+                  </InputAdornment>
+                ),
+              },
             }}
           />
         </Box>
 
-        {/* Projects Table */}
         <TableContainer sx={{ overflowX: "auto" }}>
           <Table sx={{ minWidth: 850 }}>
             <TableHead>
@@ -361,7 +405,9 @@ function TeamLeaderProjects() {
                 <TableRow
                   key={project.id}
                   hover
+                  onClick={() => navigate(`/projects/${project.id}`)}
                   sx={{
+                    cursor: "pointer",
                     "&:last-child td": { borderBottom: 0 },
                   }}
                 >
@@ -393,10 +439,7 @@ function TeamLeaderProjects() {
                           {project.name}
                         </Typography>
 
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                        >
+                        <Typography variant="caption" color="text.secondary">
                           {project.description}
                         </Typography>
                       </Box>
@@ -428,26 +471,20 @@ function TeamLeaderProjects() {
 
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
                     <Typography variant="body2">
-                      {project.startDate}
+                      {formatDate(project.startDate)}
                     </Typography>
                   </TableCell>
 
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
                     <Typography variant="body2">
-                      {project.endDate}
+                      {formatDate(project.endDate)}
                     </Typography>
                   </TableCell>
 
                   <TableCell sx={{ minWidth: 150 }}>
                     <Stack spacing={0.8}>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                      >
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                        >
+                      <Stack direction="row" justifyContent="space-between">
+                        <Typography variant="caption" color="text.secondary">
                           Progress
                         </Typography>
 
@@ -470,9 +507,7 @@ function TeamLeaderProjects() {
                           "& .MuiLinearProgress-bar": {
                             borderRadius: 5,
                             backgroundColor:
-                              project.progress === 100
-                                ? "#16A34A"
-                                : "#2563EB",
+                              project.progress === 100 ? "#16A34A" : "#2563EB",
                           },
                         }}
                       />
@@ -480,7 +515,10 @@ function TeamLeaderProjects() {
                   </TableCell>
 
                   <TableCell align="right">
-                    <IconButton size="small">
+                    <IconButton
+                      size="small"
+                      onClick={(event) => openProjectMenu(event, project)}
+                    >
                       <MoreHorizRounded />
                     </IconButton>
                   </TableCell>
@@ -491,7 +529,9 @@ function TeamLeaderProjects() {
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <Typography color="text.secondary">
-                      No projects found.
+                      {myProjects.length === 0
+                        ? "You don't have any projects yet."
+                        : "No projects found."}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -500,20 +540,44 @@ function TeamLeaderProjects() {
           </Table>
         </TableContainer>
 
-        <Box
-          sx={{
-            px: 2.5,
-            py: 2,
-            borderTop: "1px solid #E2E8F0",
-          }}
-        >
+        <Box sx={{ px: 2.5, py: 2, borderTop: "1px solid #E2E8F0" }}>
           <Typography variant="caption" color="text.secondary">
-            Showing {filteredProjects.length} of {projects.length} projects
+            Showing {filteredProjects.length} of {myProjects.length} projects
           </Typography>
         </Box>
       </Paper>
 
-      {/* Add Project Dialog */}
+      {/* Actions Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={() => setMenuAnchor(null)}
+      >
+        <MenuItem
+          onClick={() => {
+            if (selectedProject) {
+              navigate(`/projects/${selectedProject.id}`);
+            }
+            setMenuAnchor(null);
+          }}
+        >
+          View Details
+        </MenuItem>
+
+        <MenuItem onClick={openEditDialog}>Edit Project</MenuItem>
+
+        <MenuItem
+          sx={{ color: "#DC2626" }}
+          onClick={() => {
+            setMenuAnchor(null);
+            setDeleteDialog(true);
+          }}
+        >
+          Delete Project
+        </MenuItem>
+      </Menu>
+
+      {/* Add / Edit Dialog */}
       <Dialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
@@ -521,7 +585,7 @@ function TeamLeaderProjects() {
         maxWidth="sm"
       >
         <DialogTitle sx={{ fontWeight: 700, color: "#17365D" }}>
-          Create New Project
+          {editingProject ? "Edit Project" : "Create New Project"}
         </DialogTitle>
 
         <DialogContent>
@@ -529,10 +593,8 @@ function TeamLeaderProjects() {
             <TextField
               label="Project Name"
               fullWidth
-              value={newProject.name}
-              onChange={(e) =>
-                setNewProject({ ...newProject, name: e.target.value })
-              }
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
 
             <TextField
@@ -540,21 +602,9 @@ function TeamLeaderProjects() {
               fullWidth
               multiline
               rows={3}
-              value={newProject.description}
+              value={form.description}
               onChange={(e) =>
-                setNewProject({
-                  ...newProject,
-                  description: e.target.value,
-                })
-              }
-            />
-
-            <TextField
-              label="Team Leader"
-              fullWidth
-              value={newProject.leader}
-              onChange={(e) =>
-                setNewProject({ ...newProject, leader: e.target.value })
+                setForm({ ...form, description: e.target.value })
               }
             />
 
@@ -562,10 +612,8 @@ function TeamLeaderProjects() {
               label="Status"
               select
               fullWidth
-              value={newProject.status}
-              onChange={(e) =>
-                setNewProject({ ...newProject, status: e.target.value })
-              }
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
             >
               <MenuItem value="Planning">Planning</MenuItem>
               <MenuItem value="In Progress">In Progress</MenuItem>
@@ -577,51 +625,84 @@ function TeamLeaderProjects() {
               label="Start Date"
               type="date"
               fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={newProject.startDate}
+              value={form.startDate}
               onChange={(e) =>
-                setNewProject({
-                  ...newProject,
-                  startDate: e.target.value,
-                })
+                setForm({ ...form, startDate: e.target.value })
               }
+              slotProps={{ inputLabel: { shrink: true } }}
             />
 
             <TextField
               label="End Date"
               type="date"
               fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={newProject.endDate}
+              value={form.endDate}
               onChange={(e) =>
-                setNewProject({
-                  ...newProject,
-                  endDate: e.target.value,
-                })
+                setForm({ ...form, endDate: e.target.value })
               }
+              slotProps={{
+                inputLabel: { shrink: true },
+                htmlInput: { min: form.startDate || undefined },
+              }}
             />
           </Stack>
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setOpenDialog(false)} color="inherit">
+            Cancel
+          </Button>
+
           <Button
-            onClick={() => setOpenDialog(false)}
+            variant="contained"
+            onClick={handleSaveProject}
+            disabled={
+              !form.name.trim() ||
+              !form.startDate ||
+              !form.endDate ||
+              form.endDate < form.startDate
+            }
+          >
+            {editingProject ? "Save Changes" : "Create Project"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog
+        open={deleteDialog}
+        onClose={() => setDeleteDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Delete Project?
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography color="text.secondary">
+            Are you sure you want to delete "{selectedProject?.name}"? This
+            action cannot be undone.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => {
+              setDeleteDialog(false);
+              setSelectedProject(null);
+            }}
             color="inherit"
           >
             Cancel
           </Button>
 
           <Button
+            color="error"
             variant="contained"
-            onClick={handleAddProject}
-            disabled={
-              !newProject.name.trim() ||
-              !newProject.leader.trim() ||
-              !newProject.startDate ||
-              !newProject.endDate
-            }
+            onClick={handleDeleteProject}
           >
-            Create Project
+            Delete
           </Button>
         </DialogActions>
       </Dialog>

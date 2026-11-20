@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -16,6 +17,7 @@ import MemberNotifications from "./features/member/notifications/MemberNotificat
 // Team Leader Pages
 import TeamLeaderDashboard from "./features/team-leader/dashboard/TeamLeaderDashboard";
 import TeamLeaderProjects from "./features/team-leader/projects/TeamLeaderProjects";
+import TeamLeaderProjectDetails from "./features/team-leader/projects/TeamLeaderProjectDetails";
 import TeamLeaderTeams from "./features/team-leader/teams/TeamLeaderTeams";
 import TeamLeaderTasks from "./features/team-leader/tasks/TeamLeaderTasks";
 import TeamLeaderPerformance from "./features/team-leader/performance/TeamLeaderPerformance";
@@ -24,15 +26,25 @@ import TeamLeaderOvertime from "./features/team-leader/overtime/TeamLeaderOverti
 import TeamLeaderAttendance from "./features/team-leader/attendance/TeamLeaderAttendance";
 import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints";
 
+import { initialProjects } from "./features/team-leader/projects/projectsData";
+
 import {
   USER_ROLES,
   getNavigationByRole,
 } from "./config/navigation";
 
-// Temporary role until authentication is implemented
+// Temporary user until authentication is implemented
 const CURRENT_ROLE = USER_ROLES.TEAM_LEADER;
+const CURRENT_TEAM_LEADER = "Sara Ahmed";
 
-function getPageByRole(role, path, label) {
+function getPageByRole(
+  role,
+  path,
+  label,
+  projects,
+  setProjects,
+  currentTeamLeader
+) {
   if (role === USER_ROLES.MEMBER) {
     switch (path) {
       case "/dashboard":
@@ -60,39 +72,47 @@ function getPageByRole(role, path, label) {
         return <TeamLeaderDashboard />;
 
       case "/projects":
-        return <TeamLeaderProjects />;
+        return (
+          <TeamLeaderProjects
+            projects={projects}
+            setProjects={setProjects}
+            currentTeamLeader={currentTeamLeader}
+          />
+        );
 
       case "/teams":
-         return <TeamLeaderTeams />;  
+        return <TeamLeaderTeams />;
 
       case "/tasks":
-        return <TeamLeaderTasks />;   
+        return <TeamLeaderTasks />;
 
       case "/performance":
         return <TeamLeaderPerformance />;
 
       case "/reports":
-        return <TeamLeaderReports />;  
+        return <TeamLeaderReports />;
 
       case "/overtime":
-        return <TeamLeaderOvertime />;  
+        return <TeamLeaderOvertime />;
 
       case "/attendance":
-         return <TeamLeaderAttendance />;  
-      
+        return <TeamLeaderAttendance />;
+
       case "/sprints":
-       return <TeamLeaderSprints />;   
+        return <TeamLeaderSprints />;
 
       default:
         return <PlaceholderPage title={label} />;
     }
   }
 
-    return <PlaceholderPage title={label} />;
-  }
+  return <PlaceholderPage title={label} />;
+}
 
 function App() {
   const navigationItems = getNavigationByRole(CURRENT_ROLE);
+
+  const [projects, setProjects] = useState(initialProjects);
 
   return (
     <BrowserRouter>
@@ -110,10 +130,25 @@ function App() {
               element={getPageByRole(
                 CURRENT_ROLE,
                 item.path,
-                item.label
+                item.label,
+                projects,
+                setProjects,
+                CURRENT_TEAM_LEADER
               )}
             />
           ))}
+
+          {CURRENT_ROLE === USER_ROLES.TEAM_LEADER && (
+            <Route
+              path="projects/:projectId"
+              element={
+                <TeamLeaderProjectDetails
+                  projects={projects}
+                  currentTeamLeader={CURRENT_TEAM_LEADER}
+                />
+              }
+            />
+          )}
 
           <Route
             path="*"
