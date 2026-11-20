@@ -33,7 +33,7 @@ export const initialProjects = [
     name: "Mobile Application",
     description: "Developing a mobile application for company employees.",
     leader: "Sara Ali",
-    status: "Planning",
+    status: "In Progress",
     startDate: "2026-10-15",
     endDate: "2027-01-15",
     progress: 25,

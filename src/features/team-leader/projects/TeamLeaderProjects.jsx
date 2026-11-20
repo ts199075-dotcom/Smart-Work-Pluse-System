@@ -182,7 +182,7 @@ function TeamLeaderProjects({
         name: form.name.trim(),
         description: form.description.trim(),
         leader: currentTeamLeader,
-        progress: 0,
+        progress: form.status === "Completed" ? 100 : 0,
         members: [currentTeamLeader],
         tasks: [],
         activities: [

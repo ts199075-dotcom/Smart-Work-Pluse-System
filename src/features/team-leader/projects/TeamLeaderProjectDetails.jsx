@@ -105,6 +105,11 @@ function TeamLeaderProjectDetails({
     (task) => task.status === "Completed"
   ).length;
 
+  const projectProgress = Math.min(
+    100,
+    Math.max(0, Number(project.progress) || 0)
+  );
+
   return (
     <Box>
       {/* Back Button */}
@@ -258,7 +263,7 @@ function TeamLeaderProjectDetails({
 
           <LinearProgress
             variant="determinate"
-            value={project.progress}
+            value={projectProgress}
             sx={{
               height: 10,
               borderRadius: 5,
@@ -267,7 +272,7 @@ function TeamLeaderProjectDetails({
               "& .MuiLinearProgress-bar": {
                 borderRadius: 5,
                 backgroundColor:
-                  project.progress === 100 ? "#16A34A" : "#2563EB",
+                  projectProgress === 100 ? "#16A34A" : "#2563EB",
               },
             }}
           />
