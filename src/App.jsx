@@ -24,13 +24,17 @@ import TeamLeaderOvertime from "./features/team-leader/overtime/TeamLeaderOverti
 import TeamLeaderAttendance from "./features/team-leader/attendance/TeamLeaderAttendance";
 import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints";
 
+// HR Pages
+import HRDashboard from "./features/hr/dashboard/HRDashboard";
+import HREmployees from "./features/hr/employee/HREmployees";
+
 import {
   USER_ROLES,
   getNavigationByRole,
 } from "./config/navigation";
 
 // Temporary role until authentication is implemented
-const CURRENT_ROLE = USER_ROLES.TEAM_LEADER;
+const CURRENT_ROLE = USER_ROLES.HR;
 
 function getPageByRole(role, path, label) {
   if (role === USER_ROLES.MEMBER) {
@@ -58,38 +62,40 @@ function getPageByRole(role, path, label) {
     switch (path) {
       case "/dashboard":
         return <TeamLeaderDashboard />;
-
       case "/projects":
         return <TeamLeaderProjects />;
-
       case "/teams":
-         return <TeamLeaderTeams />;  
-
+        return <TeamLeaderTeams />;
       case "/tasks":
-        return <TeamLeaderTasks />;   
-
+        return <TeamLeaderTasks />;
       case "/performance":
         return <TeamLeaderPerformance />;
-
       case "/reports":
-        return <TeamLeaderReports />;  
-
+        return <TeamLeaderReports />;
       case "/overtime":
-        return <TeamLeaderOvertime />;  
-
+        return <TeamLeaderOvertime />;
       case "/attendance":
-         return <TeamLeaderAttendance />;  
-      
+        return <TeamLeaderAttendance />;
       case "/sprints":
-       return <TeamLeaderSprints />;   
-
+        return <TeamLeaderSprints />;
       default:
         return <PlaceholderPage title={label} />;
     }
   }
 
-    return <PlaceholderPage title={label} />;
+  if (role === USER_ROLES.HR) {
+    switch (path) {
+      case "/dashboard":
+        return <HRDashboard />;
+      case "/employees":
+        return <HREmployees />;
+      default:
+        return <PlaceholderPage title={label} />;
+    }
   }
+
+  return <PlaceholderPage title={label} />;
+}
 
 function App() {
   const navigationItems = getNavigationByRole(CURRENT_ROLE);
