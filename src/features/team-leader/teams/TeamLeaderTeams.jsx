@@ -1,3 +1,6 @@
+
+import { useNavigate } from "react-router-dom";
+
 import {
   Box,
   Typography,
@@ -158,38 +161,33 @@ function SummaryCard({ card }) {
 function getStatusStyle(status) {
   switch (status) {
     case "Approved":
-      return {
-        color: "success",
-        label: "Approved",
-      };
+      return { color: "success", label: "Approved" };
 
     case "Pending":
-      return {
-        color: "warning",
-        label: "Pending",
-      };
+      return { color: "warning", label: "Pending" };
 
     case "In Progress":
-      return {
-        color: "info",
-        label: "In Progress",
-      };
+      return { color: "info", label: "In Progress" };
 
     case "Needs Review":
-      return {
-        color: "error",
-        label: "Needs Review",
-      };
+      return { color: "error", label: "Needs Review" };
 
     default:
-      return {
-        color: "default",
-        label: status,
-      };
+      return { color: "default", label: status };
   }
 }
 
 function TeamLeaderTeams() {
+  const navigate = useNavigate();
+
+  const handleSprintOverview = () => {
+    navigate("/sprints");
+  };
+
+  const handleViewAllRecords = () => {
+    navigate("/reports");
+  };
+
   return (
     <Box>
       {/* Page Header */}
@@ -215,6 +213,7 @@ function TeamLeaderTeams() {
         <Button
           variant="contained"
           endIcon={<ArrowForwardRounded />}
+          onClick={handleSprintOverview}
           sx={{
             borderRadius: 2,
             px: 2.5,
@@ -395,7 +394,7 @@ function TeamLeaderTeams() {
                 sx={{ alignItems: "center", mt: 3 }}
               >
                 <CheckCircleRounded
-                    sx={{ color: "success.main", fontSize: 19 }}
+                  sx={{ color: "success.main", fontSize: 19 }}
                 />
 
                 <Typography fontSize={13} color="text.secondary">
@@ -437,6 +436,7 @@ function TeamLeaderTeams() {
 
             <Button
               endIcon={<ArrowForwardRounded />}
+              onClick={handleViewAllRecords}
               sx={{
                 textTransform: "none",
                 fontWeight: 600,
@@ -487,10 +487,7 @@ function TeamLeaderTeams() {
                         {record.name}
                       </Typography>
 
-                      <Typography
-                        fontSize={12}
-                        color="text.secondary"
-                      >
+                      <Typography fontSize={12} color="text.secondary">
                         {record.role}
                       </Typography>
                     </Box>

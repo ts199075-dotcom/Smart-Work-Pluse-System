@@ -1,3 +1,4 @@
+
 import { useMemo, useState } from "react";
 
 import {
@@ -19,6 +20,7 @@ import {
   IconButton,
   InputAdornment,
   Divider,
+  Menu,
 } from "@mui/material";
 
 import {
@@ -28,6 +30,9 @@ import {
   CalendarTodayOutlined,
   MoreHorizRounded,
   CloseRounded,
+  VisibilityOutlined,
+  EditOutlined,
+  DeleteOutlineRounded,
 } from "@mui/icons-material";
 
 const initialTasks = [
@@ -99,6 +104,15 @@ const teamMembers = [
 const statusOptions = ["To Do", "In Progress", "Completed"];
 const priorityOptions = ["Low", "Medium", "High", "Critical"];
 
+const emptyTask = {
+  title: "",
+  project: "",
+  assignedTo: "",
+  status: "To Do",
+  priority: "Medium",
+  deadline: "",
+};
+
 function getStatusColor(status) {
   switch (status) {
     case "Completed":
@@ -132,7 +146,26 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-function TaskCard({ task, onStatusChange }) {
+function getProgressByStatus(status, previousProgress = 0, previousStatus = "") {
+  if (status === "Completed") return 100;
+  if (status === "To Do") return 0;
+
+  if (
+    previousStatus === "Completed" ||
+    previousProgress <= 0 ||
+    previousProgress >= 100
+  ) {
+    return 30;
+  }
+
+  return previousProgress;
+}
+
+function TaskCard({
+  task,
+  onStatusChange,
+  onMenuOpen,
+}) {
   return (
     <Card
       elevation={0}
@@ -168,7 +201,10 @@ function TaskCard({ task, onStatusChange }) {
             }}
           />
 
-          <IconButton size="small">
+          <IconButton
+            size="small"
+            onClick={(event) => onMenuOpen(event, task)}
+          >
             <MoreHorizRounded />
           </IconButton>
         </Stack>
@@ -299,19 +335,21 @@ function TaskCard({ task, onStatusChange }) {
 
 function TeamLeaderTasks() {
   const [tasks, setTasks] = useState(initialTasks);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [priorityFilter, setPriorityFilter] = useState("All");
-  const [openDialog, setOpenDialog] = useState(false);
 
-  const [newTask, setNewTask] = useState({
-    title: "",
-    project: "",
-    assignedTo: "",
-    status: "To Do",
-    priority: "Medium",
-    deadline: "",
-  });
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [menuTask, setMenuTask] = useState(null);
+
+  const [formTask, setFormTask] = useState(emptyTask);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -331,12 +369,15 @@ function TeamLeaderTasks() {
   }, [tasks, search, statusFilter, priorityFilter]);
 
   const totalTasks = tasks.length;
+
   const completedTasks = tasks.filter(
     (task) => task.status === "Completed"
   ).length;
+
   const inProgressTasks = tasks.filter(
     (task) => task.status === "In Progress"
   ).length;
+
   const todoTasks = tasks.filter(
     (task) => task.status === "To Do"
   ).length;
@@ -348,50 +389,130 @@ function TeamLeaderTasks() {
           ? {
               ...task,
               status: newStatus,
-              progress:
-                newStatus === "Completed"
-                  ? 100
-                  : newStatus === "To Do"
-                    ? 0
-                    : task.progress === 0
-                      ? 30
-                      : task.progress,
+              progress: getProgressByStatus(
+                newStatus,
+                task.progress,
+                task.status
+              ),
             }
           : task
       )
     );
   };
 
-  const handleAddTask = () => {
+  const handleMenuOpen = (event, task) => {
+    setMenuAnchor(event.currentTarget);
+    setMenuTask(task);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+    setMenuTask(null);
+  };
+
+  const handleCreateOpen = () => {
+    setEditingTask(null);
+    setFormTask(emptyTask);
+    setOpenDialog(true);
+  };
+
+  const handleEditOpen = () => {
+    if (!menuTask) return;
+
+    setEditingTask(menuTask);
+
+    setFormTask({
+      title: menuTask.title,
+      project: menuTask.project,
+      assignedTo: menuTask.assignedTo,
+      status: menuTask.status,
+      priority: menuTask.priority,
+      deadline: menuTask.deadline,
+    });
+
+    handleMenuClose();
+    setOpenDialog(true);
+  };
+
+  const handleSaveTask = () => {
     if (
-      !newTask.title.trim() ||
-      !newTask.project.trim() ||
-      !newTask.assignedTo ||
-      !newTask.deadline
+      !formTask.title.trim() ||
+      !formTask.project.trim() ||
+      !formTask.assignedTo ||
+      !formTask.deadline
     ) {
       return;
     }
 
-    const task = {
-      ...newTask,
-      id: Date.now(),
-      initials: getInitials(newTask.assignedTo),
-      progress: 0,
-    };
+    if (editingTask) {
+      setTasks((previousTasks) =>
+        previousTasks.map((task) => {
+          if (task.id !== editingTask.id) return task;
 
-    setTasks((previousTasks) => [task, ...previousTasks]);
+          return {
+            ...task,
+            ...formTask,
+            title: formTask.title.trim(),
+            project: formTask.project.trim(),
+            initials: getInitials(formTask.assignedTo),
+            progress: getProgressByStatus(
+              formTask.status,
+              task.progress,
+              task.status
+            ),
+          };
+        })
+      );
+    } else {
+      const task = {
+        ...formTask,
+        id: Date.now(),
+        title: formTask.title.trim(),
+        project: formTask.project.trim(),
+        initials: getInitials(formTask.assignedTo),
+        progress: getProgressByStatus(formTask.status),
+      };
 
-    setNewTask({
-      title: "",
-      project: "",
-      assignedTo: "",
-      status: "To Do",
-      priority: "Medium",
-      deadline: "",
-    });
+      setTasks((previousTasks) => [task, ...previousTasks]);
+    }
 
     setOpenDialog(false);
+    setEditingTask(null);
+    setFormTask(emptyTask);
   };
+
+  const handleViewDetails = () => {
+    setSelectedTask(menuTask);
+    handleMenuClose();
+  };
+
+  const handleDeleteRequest = () => {
+    setTaskToDelete(menuTask);
+    handleMenuClose();
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!taskToDelete) return;
+
+    setTasks((previousTasks) =>
+      previousTasks.filter((task) => task.id !== taskToDelete.id)
+    );
+
+    setTaskToDelete(null);
+  };
+
+  const handleFormChange = (field, value) => {
+    setFormTask((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const isFormValid =
+    formTask.title.trim() &&
+    formTask.project.trim() &&
+    formTask.assignedTo &&
+    formTask.deadline;
 
   return (
     <Box>
@@ -418,7 +539,7 @@ function TeamLeaderTasks() {
         <Button
           variant="contained"
           startIcon={<AddRounded />}
-          onClick={() => setOpenDialog(true)}
+          onClick={handleCreateOpen}
           sx={{
             backgroundColor: "#17365D",
             borderRadius: 2,
@@ -548,13 +669,13 @@ function TeamLeaderTasks() {
               onChange={(event) => setSearch(event.target.value)}
               slotProps={{
                 input: {
-                    startAdornment: (
+                  startAdornment: (
                     <InputAdornment position="start">
-                        <SearchRounded color="action" />
+                      <SearchRounded color="action" />
                     </InputAdornment>
-                    ),
+                  ),
                 },
-             }}
+              }}
             />
 
             <TextField
@@ -566,6 +687,7 @@ function TeamLeaderTasks() {
               onChange={(event) => setStatusFilter(event.target.value)}
             >
               <MenuItem value="All">All Statuses</MenuItem>
+
               {statusOptions.map((status) => (
                 <MenuItem key={status} value={status}>
                   {status}
@@ -582,6 +704,7 @@ function TeamLeaderTasks() {
               onChange={(event) => setPriorityFilter(event.target.value)}
             >
               <MenuItem value="All">All Priorities</MenuItem>
+
               {priorityOptions.map((priority) => (
                 <MenuItem key={priority} value={priority}>
                   {priority}
@@ -627,6 +750,7 @@ function TeamLeaderTasks() {
               key={task.id}
               task={task}
               onStatusChange={handleStatusChange}
+              onMenuOpen={handleMenuOpen}
             />
           ))}
         </Box>
@@ -651,7 +775,42 @@ function TeamLeaderTasks() {
         </Card>
       )}
 
-      {/* Create Task Dialog */}
+      {/* Task Actions Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        <MenuItem onClick={handleViewDetails}>
+          <VisibilityOutlined sx={{ mr: 1.5, fontSize: 19 }} />
+          View Details
+        </MenuItem>
+
+        <MenuItem onClick={handleEditOpen}>
+          <EditOutlined sx={{ mr: 1.5, fontSize: 19 }} />
+          Edit Task
+        </MenuItem>
+
+        <Divider />
+
+        <MenuItem
+          onClick={handleDeleteRequest}
+          sx={{ color: "error.main" }}
+        >
+          <DeleteOutlineRounded sx={{ mr: 1.5, fontSize: 19 }} />
+          Delete Task
+        </MenuItem>
+      </Menu>
+
+      {/* Create / Edit Task Dialog */}
       <Dialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
@@ -667,7 +826,7 @@ function TeamLeaderTasks() {
             }}
           >
             <Typography variant="h6" fontWeight={700}>
-              Create New Task
+              {editingTask ? "Edit Task" : "Create New Task"}
             </Typography>
 
             <IconButton onClick={() => setOpenDialog(false)}>
@@ -682,9 +841,9 @@ function TeamLeaderTasks() {
               fullWidth
               label="Task Title"
               placeholder="Enter task title"
-              value={newTask.title}
+              value={formTask.title}
               onChange={(event) =>
-                setNewTask({ ...newTask, title: event.target.value })
+                handleFormChange("title", event.target.value)
               }
             />
 
@@ -692,9 +851,9 @@ function TeamLeaderTasks() {
               fullWidth
               label="Project Name"
               placeholder="Enter project name"
-              value={newTask.project}
+              value={formTask.project}
               onChange={(event) =>
-                setNewTask({ ...newTask, project: event.target.value })
+                handleFormChange("project", event.target.value)
               }
             />
 
@@ -702,9 +861,9 @@ function TeamLeaderTasks() {
               select
               fullWidth
               label="Assign To"
-              value={newTask.assignedTo}
+              value={formTask.assignedTo}
               onChange={(event) =>
-                setNewTask({ ...newTask, assignedTo: event.target.value })
+                handleFormChange("assignedTo", event.target.value)
               }
             >
               {teamMembers.map((member) => (
@@ -718,9 +877,9 @@ function TeamLeaderTasks() {
               select
               fullWidth
               label="Priority"
-              value={newTask.priority}
+              value={formTask.priority}
               onChange={(event) =>
-                setNewTask({ ...newTask, priority: event.target.value })
+                handleFormChange("priority", event.target.value)
               }
             >
               {priorityOptions.map((priority) => (
@@ -734,9 +893,9 @@ function TeamLeaderTasks() {
               select
               fullWidth
               label="Status"
-              value={newTask.status}
+              value={formTask.status}
               onChange={(event) =>
-                setNewTask({ ...newTask, status: event.target.value })
+                handleFormChange("status", event.target.value)
               }
             >
               {statusOptions.map((status) => (
@@ -750,10 +909,12 @@ function TeamLeaderTasks() {
               fullWidth
               type="date"
               label="Deadline"
-              InputLabelProps={{ shrink: true }}
-              value={newTask.deadline}
+              slotProps={{
+                inputLabel: { shrink: true },
+              }}
+              value={formTask.deadline}
               onChange={(event) =>
-                setNewTask({ ...newTask, deadline: event.target.value })
+                handleFormChange("deadline", event.target.value)
               }
             />
           </Stack>
@@ -769,13 +930,8 @@ function TeamLeaderTasks() {
 
           <Button
             variant="contained"
-            onClick={handleAddTask}
-            disabled={
-              !newTask.title.trim() ||
-              !newTask.project.trim() ||
-              !newTask.assignedTo ||
-              !newTask.deadline
-            }
+            onClick={handleSaveTask}
+            disabled={!isFormValid}
             sx={{
               backgroundColor: "#17365D",
               "&:hover": {
@@ -783,7 +939,201 @@ function TeamLeaderTasks() {
               },
             }}
           >
-            Create Task
+            {editingTask ? "Save Changes" : "Create Task"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Task Details Dialog */}
+      <Dialog
+        open={Boolean(selectedTask)}
+        onClose={() => setSelectedTask(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        {selectedTask && (
+          <>
+            <DialogTitle>
+              <Stack
+                direction="row"
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Typography variant="h6" fontWeight={700}>
+                  Task Details
+                </Typography>
+
+                <IconButton onClick={() => setSelectedTask(null)}>
+                  <CloseRounded />
+                </IconButton>
+              </Stack>
+            </DialogTitle>
+
+            <DialogContent dividers>
+              <Stack spacing={2.5} sx={{ py: 1 }}>
+                <Box>
+                  <Typography
+                    fontSize={12}
+                    color="text.secondary"
+                    mb={0.5}
+                  >
+                    TASK TITLE
+                  </Typography>
+
+                  <Typography fontWeight={700} fontSize={18}>
+                    {selectedTask.title}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography
+                    fontSize={12}
+                    color="text.secondary"
+                    mb={0.5}
+                  >
+                    PROJECT
+                  </Typography>
+
+                  <Typography fontWeight={600}>
+                    {selectedTask.project}
+                  </Typography>
+                </Box>
+
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Chip
+                    label={selectedTask.status}
+                    color={getStatusColor(selectedTask.status)}
+                    variant="outlined"
+                  />
+
+                  <Chip
+                    label={selectedTask.priority}
+                    color={getPriorityColor(selectedTask.priority)}
+                  />
+                </Stack>
+
+                <Divider />
+
+                <Box>
+                  <Typography
+                    fontSize={12}
+                    color="text.secondary"
+                    mb={1}
+                  >
+                    ASSIGNED MEMBER
+                  </Typography>
+
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <Avatar
+                      sx={{
+                        backgroundColor: "#DBEAFE",
+                        color: "#17365D",
+                      }}
+                    >
+                      {selectedTask.initials}
+                    </Avatar>
+
+                    <Typography fontWeight={600}>
+                      {selectedTask.assignedTo}
+                    </Typography>
+                  </Stack>
+                </Box>
+
+                <Box>
+                  <Typography
+                    fontSize={12}
+                    color="text.secondary"
+                    mb={0.5}
+                  >
+                    DEADLINE
+                  </Typography>
+
+                  <Typography fontWeight={600}>
+                    {selectedTask.deadline}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    mb={1}
+                  >
+                    <Typography
+                      fontSize={12}
+                      color="text.secondary"
+                    >
+                      PROGRESS
+                    </Typography>
+
+                    <Typography fontWeight={700} fontSize={13}>
+                      {selectedTask.progress}%
+                    </Typography>
+                  </Stack>
+
+                  <LinearProgress
+                    variant="determinate"
+                    value={selectedTask.progress}
+                    sx={{
+                      height: 8,
+                      borderRadius: 5,
+                      "& .MuiLinearProgress-bar": {
+                        backgroundColor:
+                          selectedTask.status === "Completed"
+                            ? "#16A34A"
+                            : "#2563EB",
+                      },
+                    }}
+                  />
+                </Box>
+              </Stack>
+            </DialogContent>
+
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setSelectedTask(null)}>
+                Close
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={Boolean(taskToDelete)}
+        onClose={() => setTaskToDelete(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle fontWeight={700}>
+          Delete Task?
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography color="text.secondary" fontSize={14}>
+            Are you sure you want to delete
+            {" "}
+            <strong>{taskToDelete?.title}</strong>?
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            color="inherit"
+            onClick={() => setTaskToDelete(null)}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteConfirm}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
