@@ -184,22 +184,18 @@ const normalizeSprint = (sprint) => {
   const inProgress = Math.max(0, Number(sprint.inProgress) || 0);
   const todo = Math.max(0, Number(sprint.todo) || 0);
 
+  // taskItems are preview items, not necessarily all sprint tasks.
+  // Aggregate counts remain the source of truth.
   const totalTasks = completed + inProgress + todo;
-  const isCompleted = sprint.status === "Completed";
 
   return {
     ...sprint,
     tasks: totalTasks,
-    completed: isCompleted ? totalTasks : completed,
-    inProgress: isCompleted ? 0 : inProgress,
-    todo: isCompleted ? 0 : todo,
+    completed,
+    inProgress,
+    todo,
     members: sprint.members || [],
-    taskItems: isCompleted
-      ? (sprint.taskItems || []).map((task) => ({
-          ...task,
-          status: "Completed",
-        }))
-      : sprint.taskItems || [],
+    taskItems: sprint.taskItems || [],
   };
 };
 
@@ -345,7 +341,13 @@ function SprintStatus({ status }) {
 // Sprint Card
 // --------------------------------------------------
 
-function SprintCard({ sprint, onView, onEdit, onDelete, onStatusChange }) {
+function SprintCard({
+  sprint,
+  onView,
+  onEdit,
+  onDelete,
+  onStatusChange,
+}) {
   const progress = getSprintProgress(sprint);
   const remainingDays = getRemainingDays(sprint.endDate);
 
@@ -542,6 +544,8 @@ function TeamLeaderSprints() {
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSprintId, setEditingSprintId] = useState(null);
+
+  const [statusError, setStatusError] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -754,6 +758,7 @@ function TeamLeaderSprints() {
     );
 
     setDeleteSprintId(null);
+    setStatusError("");
   };
 
   // --------------------------------------------------
@@ -761,28 +766,68 @@ function TeamLeaderSprints() {
   // --------------------------------------------------
 
   const handleStatusChange = (sprintId, newStatus) => {
+    const targetSprint = sprints.find((sprint) => sprint.id === sprintId);
+
+    if (!targetSprint || targetSprint.status === newStatus) {
+      return;
+    }
+
+    // A sprint can only be completed when all its tasks are completed.
+    if (newStatus === "Completed") {
+      if (targetSprint.tasks === 0) {
+        setStatusError(
+          `${targetSprint.name} cannot be completed because it has no tasks yet.`
+        );
+        return;
+      }
+
+      if (
+        targetSprint.inProgress > 0 ||
+        targetSprint.todo > 0 ||
+        targetSprint.completed !== targetSprint.tasks
+      ) {
+        const remainingMessages = [];
+
+        if (targetSprint.inProgress > 0) {
+          remainingMessages.push(
+            `${targetSprint.inProgress} ${
+              targetSprint.inProgress === 1 ? "task is" : "tasks are"
+            } still In Progress`
+          );
+        }
+
+        if (targetSprint.todo > 0) {
+          remainingMessages.push(
+            `${targetSprint.todo} ${
+              targetSprint.todo === 1 ? "task is" : "tasks are"
+            } still To Do`
+          );
+        }
+
+        setStatusError(
+          `${targetSprint.name} cannot be completed yet. ${
+            remainingMessages.length > 0
+              ? `${remainingMessages.join(" and ")}.`
+              : "Complete all tasks first."
+          }`
+        );
+
+        return;
+      }
+    }
+
+    setStatusError("");
+
     const updatedSprints = sprints.map((sprint) => {
+      // Update the selected sprint.
       if (sprint.id === sprintId) {
-        const updatedSprint = {
+        return {
           ...sprint,
           status: newStatus,
         };
-
-        if (newStatus === "Completed") {
-          updatedSprint.completed = sprint.tasks;
-          updatedSprint.inProgress = 0;
-          updatedSprint.todo = 0;
-
-          updatedSprint.taskItems = (sprint.taskItems || []).map((task) => ({
-            ...task,
-            status: "Completed",
-          }));
-        }
-
-        return normalizeSprint(updatedSprint);
       }
 
-      // Only one sprint can be active at a time.
+      // Only one sprint can be Active at a time.
       if (newStatus === "Active" && sprint.status === "Active") {
         return {
           ...sprint,
@@ -795,7 +840,7 @@ function TeamLeaderSprints() {
 
     setSprints(updatedSprints);
 
-    // Keep the details dialog synchronized with the latest sprint data.
+    // Keep the details dialog synchronized.
     setSelectedSprint((previous) => {
       if (!previous) return previous;
 
@@ -836,6 +881,7 @@ function TeamLeaderSprints() {
           variant="contained"
           startIcon={<AddRounded />}
           onClick={() => {
+            setStatusError("");
             resetForm();
             setOpenDialog(true);
           }}
@@ -844,6 +890,27 @@ function TeamLeaderSprints() {
           Create Sprint
         </Button>
       </Stack>
+
+      {/* Inline Status Feedback */}
+
+      {statusError && (
+        <Box
+          role="status"
+          aria-live="polite"
+          sx={{
+            mb: 3,
+            px: 2,
+            py: 1.5,
+            borderRadius: 2,
+            border: "1px solid #FECACA",
+            backgroundColor: "#FEF2F2",
+          }}
+        >
+          <Typography fontSize={13} fontWeight={500} color="#B91C1C">
+            {statusError}
+          </Typography>
+        </Box>
+      )}
 
       {/* Summary Cards */}
 

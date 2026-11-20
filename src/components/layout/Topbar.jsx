@@ -16,7 +16,16 @@ import {
   SearchRounded,
   NotificationsNoneRounded,
   NavigateNextRounded,
+  MenuRounded,
 } from "@mui/icons-material";
+
+import {
+  Link as RouterLink,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+import { getNavigationByRole } from "../../config/navigation";
 
 const ROLE_LABELS = {
   member: "Member",
@@ -26,12 +35,37 @@ const ROLE_LABELS = {
 };
 
 function Topbar({
-  pageTitle = "Dashboard",
   userName = "Sara Ahmed",
   role = "member",
   userInitials = "SA",
+  onMenuClick,
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const userRole = ROLE_LABELS[role] || role;
+
+  const navigationItems = getNavigationByRole(role);
+
+  const currentPage = navigationItems.find(
+    (item) => item.path === location.pathname
+  );
+
+  const isProjectDetails =
+    role === "team-leader" &&
+    /^\/projects\/[^/]+$/.test(location.pathname);
+
+  const pageTitle = isProjectDetails
+    ? "Project Details"
+    : currentPage?.label || "Dashboard";
+
+  const hasNotifications = navigationItems.some(
+    (item) => item.path === "/notifications"
+  );
+
+  const handleNotificationsClick = () => {
+    navigate("/notifications");
+  };
 
   return (
     <AppBar
@@ -53,27 +87,65 @@ function Topbar({
           flexWrap: "nowrap",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: 2,
+          gap: { xs: 1, md: 2 },
         }}
       >
-        {/* Breadcrumbs */}
-        <Box sx={{ minWidth: 0 }}>
-          <Breadcrumbs
-            separator={<NavigateNextRounded fontSize="small" />}
+        {/* Left Section */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          {/* Mobile Menu */}
+          <IconButton
+            onClick={onMenuClick}
+            aria-label="Open navigation menu"
+            sx={{
+              display: { xs: "flex", md: "none" },
+              color: "#17365D",
+              flexShrink: 0,
+            }}
           >
-            <Link
-              underline="hover"
-              color="inherit"
-              href="#"
-              sx={{ fontSize: 12 }}
-            >
-              Workspace
-            </Link>
+            <MenuRounded />
+          </IconButton>
 
-            <Typography fontSize={12} fontWeight={600} color="text.primary">
-              {pageTitle}
-            </Typography>
-          </Breadcrumbs>
+          {/* Breadcrumbs */}
+          <Box sx={{ minWidth: 0 }}>
+            <Breadcrumbs
+              separator={<NavigateNextRounded fontSize="small" />}
+              sx={{
+                "& .MuiBreadcrumbs-ol": {
+                  flexWrap: "nowrap",
+                },
+              }}
+            >
+              <Link
+                component={RouterLink}
+                to="/dashboard"
+                underline="hover"
+                color="inherit"
+                sx={{
+                  fontSize: 12,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Workspace
+              </Link>
+
+              <Typography
+                fontSize={12}
+                fontWeight={600}
+                color="text.primary"
+                noWrap
+              >
+                {pageTitle}
+              </Typography>
+            </Breadcrumbs>
+          </Box>
         </Box>
 
         {/* Actions */}
@@ -82,7 +154,7 @@ function Topbar({
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
-            gap: { xs: 1, md: 2 },
+            gap: { xs: 0.5, sm: 1, md: 2 },
             flexShrink: 0,
           }}
         >
@@ -95,7 +167,7 @@ function Topbar({
               border: "1px solid #E2E8F0",
               borderRadius: "10px",
               px: 1.5,
-              width: { sm: 160, md: 240 },
+              width: { sm: 150, md: 240 },
               height: 40,
             }}
           >
@@ -108,21 +180,27 @@ function Topbar({
           </Box>
 
           {/* Notifications */}
-          <IconButton
-            aria-label="Notifications"
-            sx={{ color: "#64748B", flexShrink: 0 }}
-          >
-            <Badge badgeContent={3} color="error">
-              <NotificationsNoneRounded />
-            </Badge>
-          </IconButton>
+          {hasNotifications && (
+            <IconButton
+              onClick={handleNotificationsClick}
+              aria-label="Open notifications"
+              sx={{
+                color: "#64748B",
+                flexShrink: 0,
+              }}
+            >
+              <Badge badgeContent={3} color="error">
+                <NotificationsNoneRounded />
+              </Badge>
+            </IconButton>
+          )}
 
           {/* Profile */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1.2,
+              gap: { xs: 0, md: 1.2 },
               whiteSpace: "nowrap",
             }}
           >

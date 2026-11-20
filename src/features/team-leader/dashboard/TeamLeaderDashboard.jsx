@@ -1,7 +1,7 @@
+
 /* eslint-disable no-unused-vars */
 
 import { useState } from "react";
-
 import {
   Box,
   Paper,
@@ -19,11 +19,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
 } from "@mui/material";
 
 import {
   GroupsOutlined,
-  WorkOutlined,
   TaskAltOutlined,
   WarningAmberOutlined,
   TrendingUpRounded,
@@ -34,6 +34,8 @@ import {
   CalendarTodayOutlined,
   WorkOffOutlined,
 } from "@mui/icons-material";
+
+import { useNavigate } from "react-router-dom";
 
 // Dashboard Statistics
 const overviewData = [
@@ -232,6 +234,28 @@ const cardStyle = {
   borderColor: "divider",
   borderRadius: 3,
   boxShadow: "0 2px 8px rgba(23, 54, 93, 0.025)",
+};
+
+// Date Helpers
+const getCurrentDate = () => {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const formatDate = (date) =>
+  date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+const formatInputDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 };
 
 // Section Header
@@ -527,9 +551,7 @@ function TasksTable() {
               </TableCell>
 
               <TableCell>
-                <Typography fontSize={13}>
-                  {task.assignee}
-                </Typography>
+                <Typography fontSize={13}>{task.assignee}</Typography>
               </TableCell>
 
               <TableCell>
@@ -566,11 +588,7 @@ function TasksTable() {
 function ApprovalItem({ approval, onApprove, onReject }) {
   return (
     <Box sx={{ py: 2 }}>
-      <Stack
-        direction="row"
-        alignItems="flex-start"
-        spacing={1.5}
-      >
+      <Stack direction="row" alignItems="flex-start" spacing={1.5}>
         <Avatar
           sx={{
             width: 38,
@@ -707,6 +725,41 @@ function ActivityItem({ activity, isLast }) {
 // Main Dashboard
 function TeamLeaderDashboard() {
   const [approvals, setApprovals] = useState(initialApprovals);
+  const navigate = useNavigate();
+
+  const today = getCurrentDate();
+
+  const [selectedDate, setSelectedDate] = useState(() => getCurrentDate());
+
+  const isCurrentDay =
+    selectedDate.toDateString() === today.toDateString();
+
+  const goToPreviousDay = () => {
+    setSelectedDate((current) => {
+      const previousDay = new Date(current);
+      previousDay.setDate(previousDay.getDate() - 1);
+      return previousDay;
+    });
+  };
+
+  const goToCurrentDay = () => {
+    setSelectedDate(getCurrentDate());
+  };
+
+  const handleDateChange = (event) => {
+    const value = event.target.value;
+
+    if (!value) return;
+
+    const [year, month, day] = value.split("-").map(Number);
+    const newDate = new Date(year, month - 1, day);
+
+    newDate.setHours(0, 0, 0, 0);
+
+    if (newDate <= today) {
+      setSelectedDate(newDate);
+    }
+  };
 
   const handleApprove = (id) => {
     setApprovals((current) =>
@@ -722,7 +775,6 @@ function TeamLeaderDashboard() {
 
   return (
     <Box sx={{ width: "100%" }}>
-
       {/* Welcome Header */}
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -740,7 +792,7 @@ function TeamLeaderDashboard() {
               mb: 0.5,
             }}
           >
-            Welcome back, Sara 
+            Welcome back, Sara
           </Typography>
 
           <Typography color="text.secondary" fontSize={14}>
@@ -748,21 +800,71 @@ function TeamLeaderDashboard() {
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Chip
-            icon={<CalendarTodayOutlined />}
-            label="November 19, 2026"
-            variant="outlined"
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          flexWrap="wrap"
+          useFlexGap
+        >
+          <TextField
+            type="date"
+            size="small"
+            value={formatInputDate(selectedDate)}
+            onChange={handleDateChange}
+            slotProps={{
+              htmlInput: {
+                max: formatInputDate(today),
+              },
+            }}
             sx={{
+              width: 195,
               bgcolor: "#FFFFFF",
-              borderColor: "divider",
-              height: 36,
+              "& .MuiOutlinedInput-root": {
+                height: 36,
+                borderRadius: 2,
+                fontSize: 13,
+              },
+              "& .MuiInputBase-input": {
+                py: 0.5,
+              },
             }}
           />
 
           <Button
+            variant="outlined"
+            onClick={goToPreviousDay}
+            disabled={
+              selectedDate.getTime() <=
+              new Date(1900, 0, 1).getTime()
+            }
+            sx={{
+              height: 36,
+              textTransform: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Previous Day
+          </Button>
+
+          {!isCurrentDay && (
+            <Button
+              size="small"
+              onClick={goToCurrentDay}
+              sx={{
+                height: 36,
+                textTransform: "none",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Current Day
+            </Button>
+          )}
+
+          <Button
             variant="contained"
             endIcon={<ArrowForwardRounded />}
+            onClick={() => navigate("/reports")}
             sx={{
               height: 36,
               px: 2,
@@ -813,6 +915,7 @@ function TeamLeaderDashboard() {
               <Button
                 size="small"
                 endIcon={<ArrowForwardRounded />}
+                onClick={() => navigate("/projects")}
                 sx={{ whiteSpace: "nowrap" }}
               >
                 View All
@@ -823,7 +926,6 @@ function TeamLeaderDashboard() {
           {projects.map((project, index) => (
             <Box key={project.name}>
               <ProjectCard project={project} />
-
               {index !== projects.length - 1 && <Divider />}
             </Box>
           ))}
@@ -854,7 +956,11 @@ function TeamLeaderDashboard() {
                   Overall Completion
                 </Typography>
 
-                <Typography fontSize={27} fontWeight={700} color="primary.main">
+                <Typography
+                  fontSize={27}
+                  fontWeight={700}
+                  color="primary.main"
+                >
                   78%
                 </Typography>
               </Box>
@@ -885,7 +991,6 @@ function TeamLeaderDashboard() {
           {teamPerformance.map((member, index) => (
             <Box key={member.name}>
               <TeamMemberItem member={member} index={index} />
-
               {index !== teamPerformance.length - 1 && <Divider />}
             </Box>
           ))}
@@ -893,10 +998,7 @@ function TeamLeaderDashboard() {
       </Box>
 
       {/* Tasks Overview */}
-      <Paper
-        elevation={0}
-        sx={{ ...cardStyle, mb: 3 }}
-      >
+      <Paper elevation={0} sx={{ ...cardStyle, mb: 3 }}>
         <SectionHeader
           title="Tasks Overview"
           subtitle="Monitor your team's latest tasks and deadlines."
@@ -904,6 +1006,7 @@ function TeamLeaderDashboard() {
             <Button
               size="small"
               endIcon={<ArrowForwardRounded />}
+              onClick={() => navigate("/tasks")}
               sx={{ whiteSpace: "nowrap" }}
             >
               View All
