@@ -176,6 +176,43 @@ const initialSprints = [
 ];
 
 // --------------------------------------------------
+// Data Consistency Helpers
+// --------------------------------------------------
+
+const normalizeSprint = (sprint) => {
+  const completed = Math.max(0, Number(sprint.completed) || 0);
+  const inProgress = Math.max(0, Number(sprint.inProgress) || 0);
+  const todo = Math.max(0, Number(sprint.todo) || 0);
+
+  const totalTasks = completed + inProgress + todo;
+  const isCompleted = sprint.status === "Completed";
+
+  return {
+    ...sprint,
+    tasks: totalTasks,
+    completed: isCompleted ? totalTasks : completed,
+    inProgress: isCompleted ? 0 : inProgress,
+    todo: isCompleted ? 0 : todo,
+    members: sprint.members || [],
+    taskItems: isCompleted
+      ? (sprint.taskItems || []).map((task) => ({
+          ...task,
+          status: "Completed",
+        }))
+      : sprint.taskItems || [],
+  };
+};
+
+const getSprintProgress = (sprint) => {
+  if (!sprint.tasks) return 0;
+
+  return Math.min(
+    100,
+    Math.round((sprint.completed / sprint.tasks) * 100)
+  );
+};
+
+// --------------------------------------------------
 // Status Styles
 // --------------------------------------------------
 
@@ -225,15 +262,6 @@ const getRemainingDays = (endDate) => {
   const end = new Date(`${endDate}T00:00:00`);
 
   return Math.ceil((end.getTime() - today.getTime()) / 86400000);
-};
-
-const getSprintProgress = (sprint) => {
-  if (!sprint.tasks) return 0;
-
-  return Math.min(
-    100,
-    Math.round((sprint.completed / sprint.tasks) * 100)
-  );
 };
 
 // --------------------------------------------------
@@ -317,13 +345,7 @@ function SprintStatus({ status }) {
 // Sprint Card
 // --------------------------------------------------
 
-function SprintCard({
-  sprint,
-  onView,
-  onEdit,
-  onDelete,
-  onStatusChange,
-}) {
+function SprintCard({ sprint, onView, onEdit, onDelete, onStatusChange }) {
   const progress = getSprintProgress(sprint);
   const remainingDays = getRemainingDays(sprint.endDate);
 
@@ -383,11 +405,7 @@ function SprintCard({
           <RocketLaunchRounded />
         </Box>
 
-        <Stack
-          direction="row"
-          spacing={0.5}
-          sx={{ alignItems: "center" }}
-        >
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
           <SprintStatus status={sprint.status} />
 
           <IconButton
@@ -421,14 +439,8 @@ function SprintCard({
         {sprint.goal}
       </Typography>
 
-      <Stack
-        direction="row"
-        spacing={0.7}
-        sx={{ mt: 1, alignItems: "center" }}
-      >
-        <CalendarMonthRounded
-          sx={{ fontSize: 16, color: "text.secondary" }}
-        />
+      <Stack direction="row" spacing={0.7} sx={{ mt: 1, alignItems: "center" }}>
+        <CalendarMonthRounded sx={{ fontSize: 16, color: "text.secondary" }} />
 
         <Typography fontSize={12} color="text.secondary">
           {formatDate(sprint.startDate)} – {formatDate(sprint.endDate)}
@@ -518,10 +530,15 @@ function SprintCard({
 // --------------------------------------------------
 
 function TeamLeaderSprints() {
-  const [sprints, setSprints] = useState(initialSprints);
+  const [sprints, setSprints] = useState(() =>
+    initialSprints.map(normalizeSprint)
+  );
+
   const [selectedSprint, setSelectedSprint] = useState(null);
 
   const [openDialog, setOpenDialog] = useState(false);
+  const [deleteSprintId, setDeleteSprintId] = useState(null);
+
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSprintId, setEditingSprintId] = useState(null);
@@ -533,20 +550,22 @@ function TeamLeaderSprints() {
     endDate: "",
   });
 
+  const [formErrors, setFormErrors] = useState({});
+
   // --------------------------------------------------
   // Summary
   // --------------------------------------------------
 
-  const summary = useMemo(() => {
-    return {
+  const summary = useMemo(
+    () => ({
       total: sprints.length,
       active: sprints.filter((sprint) => sprint.status === "Active").length,
-      completed: sprints.filter(
-        (sprint) => sprint.status === "Completed"
-      ).length,
+      completed: sprints.filter((sprint) => sprint.status === "Completed")
+        .length,
       planned: sprints.filter((sprint) => sprint.status === "Planned").length,
-    };
-  }, [sprints]);
+    }),
+    [sprints]
+  );
 
   // --------------------------------------------------
   // Search and Filter
@@ -565,9 +584,74 @@ function TeamLeaderSprints() {
     });
   }, [sprints, selectedFilter, searchTerm]);
 
-  const currentSprint = sprints.find(
-    (sprint) => sprint.status === "Active"
-  );
+  const currentSprint = sprints.find((sprint) => sprint.status === "Active");
+
+  // --------------------------------------------------
+  // Form Validation
+  // --------------------------------------------------
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.name.trim()) {
+      errors.name = "Sprint name is required.";
+    }
+
+    if (!formData.goal.trim()) {
+      errors.goal = "Sprint goal is required.";
+    }
+
+    if (!formData.startDate) {
+      errors.startDate = "Start date is required.";
+    }
+
+    if (!formData.endDate) {
+      errors.endDate = "End date is required.";
+    } else if (
+      formData.startDate &&
+      formData.endDate < formData.startDate
+    ) {
+      errors.endDate = "End date must be after or equal to start date.";
+    }
+
+    if (
+      formData.startDate &&
+      formData.endDate &&
+      formData.endDate >= formData.startDate
+    ) {
+      const overlappingSprint = sprints.find((sprint) => {
+        if (sprint.id === editingSprintId) {
+          return false;
+        }
+
+        return (
+          formData.startDate <= sprint.endDate &&
+          formData.endDate >= sprint.startDate
+        );
+      });
+
+      if (overlappingSprint) {
+        errors.endDate = `Dates overlap with ${overlappingSprint.name}.`;
+      }
+    }
+
+    setFormErrors(errors);
+
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleFormChange = (field, value) => {
+    setFormData((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+
+    setFormErrors((previous) => ({
+      ...previous,
+      [field]: "",
+      ...(field === "startDate" ? { endDate: "" } : {}),
+    }));
+  };
 
   // --------------------------------------------------
   // Dialog Functions
@@ -581,6 +665,7 @@ function TeamLeaderSprints() {
       endDate: "",
     });
 
+    setFormErrors({});
     setEditingSprintId(null);
   };
 
@@ -590,32 +675,29 @@ function TeamLeaderSprints() {
   };
 
   const handleCreateSprint = () => {
-    if (
-      !formData.name.trim() ||
-      !formData.goal.trim() ||
-      !formData.startDate ||
-      !formData.endDate ||
-      formData.endDate < formData.startDate
-    ) {
-      return;
-    }
+    if (!validateForm()) return;
 
     if (editingSprintId) {
-      setSprints((previous) =>
-        previous.map((sprint) =>
-          sprint.id === editingSprintId
-            ? { ...sprint, ...formData }
-            : sprint
-        )
+      const updatedSprints = sprints.map((sprint) =>
+        sprint.id === editingSprintId
+          ? normalizeSprint({
+              ...sprint,
+              ...formData,
+            })
+          : sprint
       );
 
-      setSelectedSprint((previous) =>
-        previous?.id === editingSprintId
-          ? { ...previous, ...formData }
-          : previous
-      );
+      setSprints(updatedSprints);
+
+      setSelectedSprint((previous) => {
+        if (!previous) return previous;
+
+        return (
+          updatedSprints.find((sprint) => sprint.id === previous.id) || null
+        );
+      });
     } else {
-      const newSprint = {
+      const newSprint = normalizeSprint({
         id: Date.now(),
         ...formData,
         status: "Planned",
@@ -625,7 +707,7 @@ function TeamLeaderSprints() {
         todo: 0,
         members: [],
         taskItems: [],
-      };
+      });
 
       setSprints((previous) => [newSprint, ...previous]);
     }
@@ -648,6 +730,7 @@ function TeamLeaderSprints() {
       endDate: sprint.endDate,
     });
 
+    setFormErrors({});
     setOpenDialog(true);
   };
 
@@ -656,19 +739,21 @@ function TeamLeaderSprints() {
   // --------------------------------------------------
 
   const handleDeleteSprint = (sprintId) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this sprint?"
-    );
+    setDeleteSprintId(sprintId);
+  };
 
-    if (!confirmed) return;
+  const confirmDeleteSprint = () => {
+    if (deleteSprintId === null) return;
 
     setSprints((previous) =>
-      previous.filter((sprint) => sprint.id !== sprintId)
+      previous.filter((sprint) => sprint.id !== deleteSprintId)
     );
 
-    if (selectedSprint?.id === sprintId) {
-      setSelectedSprint(null);
-    }
+    setSelectedSprint((previous) =>
+      previous?.id === deleteSprintId ? null : previous
+    );
+
+    setDeleteSprintId(null);
   };
 
   // --------------------------------------------------
@@ -676,32 +761,47 @@ function TeamLeaderSprints() {
   // --------------------------------------------------
 
   const handleStatusChange = (sprintId, newStatus) => {
-    setSprints((previous) =>
-      previous.map((sprint) => {
-        if (sprint.id === sprintId) {
-          return { ...sprint, status: newStatus };
+    const updatedSprints = sprints.map((sprint) => {
+      if (sprint.id === sprintId) {
+        const updatedSprint = {
+          ...sprint,
+          status: newStatus,
+        };
+
+        if (newStatus === "Completed") {
+          updatedSprint.completed = sprint.tasks;
+          updatedSprint.inProgress = 0;
+          updatedSprint.todo = 0;
+
+          updatedSprint.taskItems = (sprint.taskItems || []).map((task) => ({
+            ...task,
+            status: "Completed",
+          }));
         }
 
-        if (newStatus === "Active" && sprint.status === "Active") {
-          return { ...sprint, status: "Planned" };
-        }
+        return normalizeSprint(updatedSprint);
+      }
 
-        return sprint;
-      })
-    );
+      // Only one sprint can be active at a time.
+      if (newStatus === "Active" && sprint.status === "Active") {
+        return {
+          ...sprint,
+          status: "Planned",
+        };
+      }
 
+      return sprint;
+    });
+
+    setSprints(updatedSprints);
+
+    // Keep the details dialog synchronized with the latest sprint data.
     setSelectedSprint((previous) => {
       if (!previous) return previous;
 
-      if (previous.id === sprintId) {
-        return { ...previous, status: newStatus };
-      }
-
-      if (newStatus === "Active" && previous.status === "Active") {
-        return { ...previous, status: "Planned" };
-      }
-
-      return previous;
+      return (
+        updatedSprints.find((sprint) => sprint.id === previous.id) || null
+      );
     });
   };
 
@@ -735,7 +835,10 @@ function TeamLeaderSprints() {
         <Button
           variant="contained"
           startIcon={<AddRounded />}
-          onClick={() => setOpenDialog(true)}
+          onClick={() => {
+            resetForm();
+            setOpenDialog(true);
+          }}
           sx={{ borderRadius: 2, px: 2.5, py: 1.2 }}
         >
           Create Sprint
@@ -831,11 +934,7 @@ function TeamLeaderSprints() {
                 {currentSprint.name}
               </Typography>
 
-              <Typography
-                color="text.secondary"
-                fontSize={13}
-                sx={{ mt: 0.7 }}
-              >
+              <Typography color="text.secondary" fontSize={13} sx={{ mt: 0.7 }}>
                 {currentSprint.goal}
               </Typography>
 
@@ -862,10 +961,14 @@ function TeamLeaderSprints() {
                   }
                 >
                   {getRemainingDays(currentSprint.endDate) < 0
-                    ? `${Math.abs(getRemainingDays(currentSprint.endDate))} days overdue`
+                    ? `${Math.abs(
+                        getRemainingDays(currentSprint.endDate)
+                      )} days overdue`
                     : getRemainingDays(currentSprint.endDate) === 0
                       ? "Ends today"
-                      : `${getRemainingDays(currentSprint.endDate)} days remaining`}
+                      : `${getRemainingDays(
+                          currentSprint.endDate
+                        )} days remaining`}
                 </Typography>
               </Stack>
             </Box>
@@ -885,11 +988,7 @@ function TeamLeaderSprints() {
                 sx={{ mt: 1, height: 9, borderRadius: 5 }}
               />
 
-              <Typography
-                color="text.secondary"
-                fontSize={12}
-                sx={{ mt: 1 }}
-              >
+              <Typography color="text.secondary" fontSize={12} sx={{ mt: 1 }}>
                 {currentSprint.completed} completed out of{" "}
                 {currentSprint.tasks} tasks
               </Typography>
@@ -942,11 +1041,7 @@ function TeamLeaderSprints() {
                 borderRadius: 3,
               }}
             >
-              <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ alignItems: "center" }}
-              >
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                 <Box
                   sx={{
                     width: 40,
@@ -1067,13 +1162,87 @@ function TeamLeaderSprints() {
           ))}
         </Box>
 
-        {filteredSprints.length === 0 && (
-          <Box sx={{ py: 5, textAlign: "center" }}>
-            <Typography fontWeight={600}>No sprints found</Typography>
+        {/* Empty State */}
 
-            <Typography color="text.secondary" fontSize={13} sx={{ mt: 0.5 }}>
-              Try changing your search or selected status.
+        {filteredSprints.length === 0 && (
+          <Box
+            sx={{
+              py: 6,
+              px: 2,
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
+            <Box
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                backgroundColor: "#DBEAFE",
+                color: "#2563EB",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mb: 2,
+              }}
+            >
+              <SearchRounded sx={{ fontSize: 30 }} />
+            </Box>
+
+            <Typography fontWeight={700} fontSize={17}>
+              {sprints.length === 0
+                ? "No Sprints Yet"
+                : searchTerm
+                  ? "No Matching Sprints"
+                  : "No Sprints Found"}
             </Typography>
+
+            <Typography
+              color="text.secondary"
+              fontSize={13}
+              sx={{ mt: 1, maxWidth: 350 }}
+            >
+              {sprints.length === 0
+                ? "Start organizing your team's work by creating your first sprint."
+                : "We couldn't find any sprints matching your current search or filters. Try changing them."}
+            </Typography>
+
+            <Stack
+              direction="row"
+              spacing={1.5}
+              sx={{
+                mt: 2.5,
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              {sprints.length > 0 && (
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedFilter("All");
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
+
+              {sprints.length === 0 && (
+                <Button
+                  variant="contained"
+                  startIcon={<AddRounded />}
+                  onClick={() => {
+                    resetForm();
+                    setOpenDialog(true);
+                  }}
+                >
+                  Create First Sprint
+                </Button>
+              )}
+            </Stack>
           </Box>
         )}
       </Card>
@@ -1107,9 +1276,11 @@ function TeamLeaderSprints() {
               fullWidth
               value={formData.name}
               onChange={(event) =>
-                setFormData({ ...formData, name: event.target.value })
+                handleFormChange("name", event.target.value)
               }
               placeholder="e.g. Sprint 06"
+              error={Boolean(formErrors.name)}
+              helperText={formErrors.name || " "}
             />
 
             <TextField
@@ -1119,9 +1290,11 @@ function TeamLeaderSprints() {
               minRows={3}
               value={formData.goal}
               onChange={(event) =>
-                setFormData({ ...formData, goal: event.target.value })
+                handleFormChange("goal", event.target.value)
               }
               placeholder="Describe the sprint objective..."
+              error={Boolean(formErrors.goal)}
+              helperText={formErrors.goal || " "}
             />
 
             <TextField
@@ -1130,8 +1303,10 @@ function TeamLeaderSprints() {
               fullWidth
               value={formData.startDate}
               onChange={(event) =>
-                setFormData({ ...formData, startDate: event.target.value })
+                handleFormChange("startDate", event.target.value)
               }
+              error={Boolean(formErrors.startDate)}
+              helperText={formErrors.startDate || " "}
               slotProps={{
                 inputLabel: { shrink: true },
               }}
@@ -1143,8 +1318,10 @@ function TeamLeaderSprints() {
               fullWidth
               value={formData.endDate}
               onChange={(event) =>
-                setFormData({ ...formData, endDate: event.target.value })
+                handleFormChange("endDate", event.target.value)
               }
+              error={Boolean(formErrors.endDate)}
+              helperText={formErrors.endDate || " "}
               slotProps={{
                 inputLabel: { shrink: true },
                 htmlInput: {
@@ -1160,17 +1337,7 @@ function TeamLeaderSprints() {
             Cancel
           </Button>
 
-          <Button
-            variant="contained"
-            onClick={handleCreateSprint}
-            disabled={
-              !formData.name.trim() ||
-              !formData.goal.trim() ||
-              !formData.startDate ||
-              !formData.endDate ||
-              formData.endDate < formData.startDate
-            }
-          >
+          <Button variant="contained" onClick={handleCreateSprint}>
             {editingSprintId ? "Save Changes" : "Create Sprint"}
           </Button>
         </DialogActions>
@@ -1209,8 +1376,6 @@ function TeamLeaderSprints() {
             </DialogTitle>
 
             <DialogContent dividers>
-              {/* Status and Goal */}
-
               <Stack
                 direction="row"
                 spacing={1}
@@ -1228,17 +1393,11 @@ function TeamLeaderSprints() {
 
               <Typography fontWeight={600}>Sprint Goal</Typography>
 
-              <Typography
-                color="text.secondary"
-                fontSize={14}
-                sx={{ mt: 0.5 }}
-              >
+              <Typography color="text.secondary" fontSize={14} sx={{ mt: 0.5 }}>
                 {selectedSprint.goal}
               </Typography>
 
               <Divider sx={{ my: 2.5 }} />
-
-              {/* Dates and Remaining Days */}
 
               <Typography fontWeight={700} sx={{ mb: 1.5 }}>
                 Sprint Timeline
@@ -1293,17 +1452,19 @@ function TeamLeaderSprints() {
                     {selectedSprint.status === "Completed"
                       ? "Completed"
                       : getRemainingDays(selectedSprint.endDate) < 0
-                        ? `${Math.abs(getRemainingDays(selectedSprint.endDate))} days overdue`
+                        ? `${Math.abs(
+                            getRemainingDays(selectedSprint.endDate)
+                          )} days overdue`
                         : getRemainingDays(selectedSprint.endDate) === 0
                           ? "Ends today"
-                          : `${getRemainingDays(selectedSprint.endDate)} days`}
+                          : `${getRemainingDays(
+                              selectedSprint.endDate
+                            )} days`}
                   </Typography>
                 </Stack>
               </Stack>
 
               <Divider sx={{ my: 2.5 }} />
-
-              {/* Task Statistics */}
 
               <Typography fontWeight={700} sx={{ mb: 1.5 }}>
                 Task Overview
@@ -1380,8 +1541,6 @@ function TeamLeaderSprints() {
 
               <Divider sx={{ my: 2.5 }} />
 
-              {/* Team Members */}
-
               <Stack
                 direction="row"
                 spacing={1}
@@ -1429,8 +1588,6 @@ function TeamLeaderSprints() {
 
               <Divider sx={{ my: 2.5 }} />
 
-              {/* Sprint Tasks */}
-
               <Stack
                 direction="row"
                 spacing={1}
@@ -1439,11 +1596,12 @@ function TeamLeaderSprints() {
                 <AssignmentOutlined color="primary" />
 
                 <Typography fontWeight={700}>
-                  Sprint Tasks ({(selectedSprint.taskItems || []).length})
+                  Task Preview ({selectedSprint.taskItems.length} of{" "}
+                  {selectedSprint.tasks})
                 </Typography>
               </Stack>
 
-              {selectedSprint.taskItems?.length > 0 ? (
+              {selectedSprint.taskItems.length > 0 ? (
                 <Stack spacing={1.5}>
                   {selectedSprint.taskItems.map((task) => (
                     <Box
@@ -1504,6 +1662,47 @@ function TeamLeaderSprints() {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Delete Sprint Confirmation Dialog */}
+
+      <Dialog
+        open={deleteSprintId !== null}
+        onClose={() => setDeleteSprintId(null)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Delete Sprint
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography color="text.secondary" fontSize={14}>
+            Are you sure you want to delete{" "}
+            <strong>
+              {sprints.find((sprint) => sprint.id === deleteSprintId)?.name}
+            </strong>
+            ?
+          </Typography>
+
+          <Typography color="error.main" fontSize={12} sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button color="inherit" onClick={() => setDeleteSprintId(null)}>
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            color="error"
+            onClick={confirmDeleteSprint}
+          >
+            Delete Sprint
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );
