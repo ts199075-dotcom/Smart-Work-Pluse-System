@@ -28,6 +28,11 @@ import TeamLeaderOvertime from "./features/team-leader/overtime/TeamLeaderOverti
 import TeamLeaderAttendance from "./features/team-leader/attendance/TeamLeaderAttendance";
 import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints";
 
+// HR Pages
+import HRDashboard from "./features/hr/dashboard/HRDashboard";
+import HREmployees from "./features/hr/employee/HREmployees";
+
+// Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
 
 import {
@@ -35,8 +40,8 @@ import {
   getNavigationByRole,
 } from "./config/navigation";
 
-// Temporary user until authentication is implemented
-const CURRENT_ROLE = USER_ROLES.TEAM_LEADER;
+// Temporary role until authentication is implemented
+const CURRENT_ROLE = USER_ROLES.HR;
 const CURRENT_TEAM_LEADER = "Sara Ahmed";
 
 function getPageByRole(
@@ -120,6 +125,12 @@ function getPageByRole(
 
   if (role === USER_ROLES.HR) {
     switch (path) {
+      case "/dashboard":
+        return <HRDashboard />;
+
+      case "/employees":
+        return <HREmployees />;
+
       case "/notifications":
         return <Notifications role={role} />;
 
