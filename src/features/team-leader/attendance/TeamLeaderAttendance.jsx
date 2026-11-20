@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 
 import { useMemo, useState } from "react";
 
@@ -21,15 +20,16 @@ import {
   Button,
   InputAdornment,
   LinearProgress,
+  IconButton,
 } from "@mui/material";
 
 import {
-  AccessTimeRounded,
   CalendarMonthRounded,
   CheckCircleRounded,
   CancelRounded,
   ScheduleRounded,
-  TrendingUpRounded,
+  ChevronLeftRounded,
+  ChevronRightRounded,
   DownloadRounded,
   SearchRounded,
   LoginRounded,
@@ -53,6 +53,28 @@ const statusStyles = {
   Absent: { color: "#DC2626", background: "#FEE2E2" },
 };
 
+const getRecordDate = (dateString) => {
+  const [day, month, year] = dateString.split(" ");
+
+  const monthIndex = new Date(`${month} 1, ${year}`).getMonth();
+
+  return new Date(Number(year), monthIndex, Number(day));
+};
+
+const getMonthLabel = (date) => {
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const isSameMonth = (date1, date2) => {
+  return (
+    date1.getMonth() === date2.getMonth() &&
+    date1.getFullYear() === date2.getFullYear()
+  );
+};
+
 function SummaryCard({ title, value, subtitle, icon, color, background }) {
   return (
     <Card
@@ -68,17 +90,19 @@ function SummaryCard({ title, value, subtitle, icon, color, background }) {
       <Stack
         direction="row"
         sx={{
-            justifyContent: "space-between",
-            alignItems: "flex-start",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
         }}
-     >
+      >
         <Box>
           <Typography color="text.secondary" fontSize={13} fontWeight={500}>
             {title}
           </Typography>
+
           <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>
             {value}
           </Typography>
+
           <Typography color="text.secondary" fontSize={12} sx={{ mt: 0.5 }}>
             {subtitle}
           </Typography>
@@ -104,7 +128,7 @@ function SummaryCard({ title, value, subtitle, icon, color, background }) {
 }
 
 function StatusChip({ status }) {
-  const style = statusStyles[status];
+  const style = statusStyles[status] || statusStyles.Present;
 
   return (
     <Chip
@@ -124,100 +148,153 @@ function StatusChip({ status }) {
 function TeamLeaderAttendance() {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("All");
 
+  const [selectedMonthDate, setSelectedMonthDate] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  );
+
+  const currentMonthDate = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+  );
+
+  const isCurrentMonth = isSameMonth(
+    selectedMonthDate,
+    currentMonthDate
+  );
+
+  // Navigate to previous month
+  const handlePreviousMonth = () => {
+    setSelectedMonthDate(
+      (previous) =>
+        new Date(
+          previous.getFullYear(),
+          previous.getMonth() - 1,
+          1
+        )
+    );
+  };
+
+  // Navigate to next month without going beyond current month
+  const handleNextMonth = () => {
+    if (isCurrentMonth) return;
+
+    setSelectedMonthDate(
+      (previous) =>
+        new Date(
+          previous.getFullYear(),
+          previous.getMonth() + 1,
+          1
+        )
+    );
+  };
+
+  // Records belonging to the selected month
+  const monthRecords = useMemo(() => {
+    return attendanceRecords.filter((record) =>
+      isSameMonth(getRecordDate(record.date), selectedMonthDate)
+    );
+  }, [selectedMonthDate]);
+
+  // Monthly attendance summary
   const summary = useMemo(() => {
-    const total = attendanceRecords.length;
+    const total = monthRecords.length;
 
-    const present = attendanceRecords.filter(
-        (record) => record.status === "Present"
+    const present = monthRecords.filter(
+      (record) => record.status === "Present"
     ).length;
 
-    const late = attendanceRecords.filter(
-        (record) => record.status === "Late"
+    const late = monthRecords.filter(
+      (record) => record.status === "Late"
     ).length;
 
-    const absent = attendanceRecords.filter(
-        (record) => record.status === "Absent"
+    const absent = monthRecords.filter(
+      (record) => record.status === "Absent"
     ).length;
 
     const attended = present + late;
 
     const attendanceRate =
-        total > 0 ? ((attended / total) * 100).toFixed(1) : "0.0";
+      total > 0 ? ((attended / total) * 100).toFixed(1) : "0.0";
 
     return {
-        total,
-        present,
-        late,
-        absent,
-        attendanceRate,
+      total,
+      present,
+      late,
+      absent,
+      attendanceRate,
     };
-    }, []);
+  }, [monthRecords]);
 
+  // Filter records by status and search
   const filteredRecords = useMemo(() => {
-  return attendanceRecords.filter((record) => {
-    const matchesStatus =
-      selectedStatus === "All" || record.status === selectedStatus;
+    return monthRecords.filter((record) => {
+      const matchesStatus =
+        selectedStatus === "All" || record.status === selectedStatus;
 
-    const matchesSearch =
-      `${record.date} ${record.day} ${record.status}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
+      const matchesSearch =
+        `${record.date} ${record.day} ${record.status}`
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
-    const matchesMonth =
-      selectedMonth === "All" ||
-      record.date.includes(selectedMonth);
+      return matchesStatus && matchesSearch;
+    });
+  }, [monthRecords, selectedStatus, searchTerm]);
 
-    return matchesStatus && matchesSearch && matchesMonth;
-  });
-}, [selectedStatus, selectedMonth, searchTerm]);
+  // Find today's attendance record
+  const todayRecord = attendanceRecords.find((record) => {
+    const recordDate = getRecordDate(record.date);
+    const today = new Date();
 
-const todayRecord = attendanceRecords.find(
-  (record) => record.id === 1
-);
-
-const handleExportCSV = () => {
-  const headers = [
-    "Date",
-    "Day",
-    "Check In",
-    "Check Out",
-    "Working Hours",
-    "Status",
-  ];
-
-  const rows = filteredRecords.map((record) => [
-    record.date,
-    record.day,
-    record.checkIn,
-    record.checkOut,
-    record.hours,
-    record.status,
-  ]);
-
-  const csvContent = [
-    headers,
-    ...rows,
-  ]
-    .map((row) =>
-      row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
-    )
-    .join("\n");
-
-  const blob = new Blob(["\uFEFF" + csvContent], {
-    type: "text/csv;charset=utf-8;",
+    return (
+      recordDate.getDate() === today.getDate() &&
+      recordDate.getMonth() === today.getMonth() &&
+      recordDate.getFullYear() === today.getFullYear()
+    );
   });
 
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+  // Export filtered records as CSV
+  const handleExportCSV = () => {
+    const headers = [
+      "Date",
+      "Day",
+      "Check In",
+      "Check Out",
+      "Working Hours",
+      "Status",
+    ];
 
-  link.href = url;
-  link.download = `attendance-report-${selectedMonth === "All" ? "all-months" : selectedMonth}.csv`;
-  link.click();
+    const rows = filteredRecords.map((record) => [
+      record.date,
+      record.day,
+      record.checkIn,
+      record.checkOut,
+      record.hours,
+      record.status,
+    ]);
 
-  URL.revokeObjectURL(url);
-};
+    const csvContent = [headers, ...rows]
+      .map((row) =>
+        row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `attendance-report-${getMonthLabel(selectedMonthDate)
+      .replace(" ", "-")
+      .toLowerCase()}.csv`;
+
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <Box>
@@ -226,30 +303,59 @@ const handleExportCSV = () => {
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
         sx={{
-            justifyContent: "space-between",
-            alignItems: { xs: "flex-start", sm: "center" },
-            mb: 4,
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          mb: 4,
         }}
       >
         <Box>
           <Typography variant="h4" fontWeight={700}>
             My Attendance
           </Typography>
+
           <Typography color="text.secondary" sx={{ mt: 0.7 }}>
             Track your attendance, check-in and check-out records.
           </Typography>
         </Box>
 
-        <Chip
-          icon={<CalendarMonthRounded />}
-          label="November 2026"
-          sx={{
-            backgroundColor: "#DBEAFE",
-            color: "#1D4ED8",
-            fontWeight: 600,
-            borderRadius: 2,
-          }}
-        />
+        <Stack direction="row" spacing={1} alignItems="center">
+          <IconButton
+            onClick={handlePreviousMonth}
+            aria-label="Previous month"
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+            }}
+          >
+            <ChevronLeftRounded />
+          </IconButton>
+
+          <Chip
+            icon={<CalendarMonthRounded />}
+            label={getMonthLabel(selectedMonthDate)}
+            sx={{
+              backgroundColor: "#DBEAFE",
+              color: "#1D4ED8",
+              fontWeight: 600,
+              borderRadius: 2,
+              minWidth: 155,
+            }}
+          />
+
+          <IconButton
+            onClick={handleNextMonth}
+            disabled={isCurrentMonth}
+            aria-label="Next month"
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+            }}
+          >
+            <ChevronRightRounded />
+          </IconButton>
+        </Stack>
       </Stack>
 
       {/* Employee Information */}
@@ -264,11 +370,11 @@ const handleExportCSV = () => {
         }}
       >
         <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            sx={{
-                alignItems: { xs: "flex-start", sm: "center" },
-            }}
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            alignItems: { xs: "flex-start", sm: "center" },
+          }}
         >
           <Avatar
             sx={{
@@ -284,6 +390,7 @@ const handleExportCSV = () => {
 
           <Box>
             <Typography fontWeight={700}>Sara Ahmed</Typography>
+
             <Typography color="text.secondary" fontSize={13}>
               Team Leader · Product Development
             </Typography>
@@ -314,12 +421,12 @@ const handleExportCSV = () => {
         }}
       >
         <SummaryCard
-            title="Present Days"
-            value={summary.present}
-            subtitle={`Out of ${summary.total} recorded days`}
-            icon={<CheckCircleRounded />}
-            color="#16A34A"
-            background="#DCFCE7"
+          title="Present Days"
+          value={summary.present}
+          subtitle={`Out of ${summary.total} recorded days`}
+          icon={<CheckCircleRounded />}
+          color="#16A34A"
+          background="#DCFCE7"
         />
 
         <SummaryCard
@@ -341,51 +448,51 @@ const handleExportCSV = () => {
         />
 
         <Card
-            elevation={0}
+          elevation={0}
+          sx={{
+            p: 2.5,
+            height: "100%",
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 3,
+          }}
+        >
+          <Stack
+            direction="row"
             sx={{
-                p: 2.5,
-                height: "100%",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 3,
+              justifyContent: "space-between",
+              alignItems: "flex-start",
             }}
-            >
-            <Stack
-                direction="row"
+          >
+            <Box sx={{ width: "100%" }}>
+              <Typography color="text.secondary" fontSize={13} fontWeight={500}>
+                Attendance Rate
+              </Typography>
+
+              <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>
+                {summary.attendanceRate}%
+              </Typography>
+
+              <LinearProgress
+                variant="determinate"
+                value={Number(summary.attendanceRate)}
                 sx={{
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                }}
-            >
-                <Box sx={{ width: "100%" }}>
-                <Typography color="text.secondary" fontSize={13} fontWeight={500}>
-                    Attendance Rate
-                </Typography>
-
-                <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>
-                    {summary.attendanceRate}%
-                </Typography>
-
-                <LinearProgress
-                    variant="determinate"
-                    value={Number(summary.attendanceRate)}
-                    sx={{
-                    mt: 2,
-                    height: 7,
+                  mt: 2,
+                  height: 7,
+                  borderRadius: 5,
+                  backgroundColor: "#EDE9FE",
+                  "& .MuiLinearProgress-bar": {
+                    backgroundColor: "#7C3AED",
                     borderRadius: 5,
-                    backgroundColor: "#EDE9FE",
-                    "& .MuiLinearProgress-bar": {
-                        backgroundColor: "#7C3AED",
-                        borderRadius: 5,
-                    },
-                    }}
-                />
+                  },
+                }}
+              />
 
-                <Typography color="text.secondary" fontSize={12} sx={{ mt: 1 }}>
-                    Based on recorded attendance
-                </Typography>
-                </Box>
-            </Stack>
+              <Typography color="text.secondary" fontSize={12} sx={{ mt: 1 }}>
+                Based on recorded attendance
+              </Typography>
+            </Box>
+          </Stack>
         </Card>
       </Box>
 
@@ -401,18 +508,19 @@ const handleExportCSV = () => {
         }}
       >
         <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={2}
-            sx={{
-                justifyContent: "space-between",
-                alignItems: { xs: "flex-start", sm: "center" },
-                mb: 3,
-            }}
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            mb: 3,
+          }}
         >
           <Box>
             <Typography variant="h6" fontWeight={700}>
               Today's Attendance
             </Typography>
+
             <Typography color="text.secondary" fontSize={13}>
               Your check-in and check-out information for today.
             </Typography>
@@ -421,13 +529,13 @@ const handleExportCSV = () => {
           <Chip
             label={todayRecord?.status || "No Attendance"}
             color={
-                todayRecord?.status === "Present"
+              todayRecord?.status === "Present"
                 ? "success"
                 : todayRecord?.status === "Late"
-                ? "warning"
-                : "default"
+                  ? "warning"
+                  : "default"
             }
-         />
+          />
         </Stack>
 
         <Box
@@ -445,15 +553,17 @@ const handleExportCSV = () => {
             }}
           >
             <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ alignItems: "center" }}
+              direction="row"
+              spacing={1.5}
+              sx={{ alignItems: "center" }}
             >
               <LoginRounded sx={{ color: "#16A34A", fontSize: 28 }} />
+
               <Box>
                 <Typography color="text.secondary" fontSize={12}>
                   Check In
                 </Typography>
+
                 <Typography variant="h5" fontWeight={700}>
                   {todayRecord?.checkIn || "--"}
                 </Typography>
@@ -469,17 +579,19 @@ const handleExportCSV = () => {
             }}
           >
             <Stack
-                direction="row"
-                spacing={1.5}
-                sx={{ alignItems: "center" }}
+              direction="row"
+              spacing={1.5}
+              sx={{ alignItems: "center" }}
             >
               <LogoutRounded sx={{ color: "#2563EB", fontSize: 28 }} />
+
               <Box>
                 <Typography color="text.secondary" fontSize={12}>
                   Check Out
                 </Typography>
+
                 <Typography variant="h5" fontWeight={700}>
-                 {todayRecord?.checkOut || "--"}
+                  {todayRecord?.checkOut || "--"}
                 </Typography>
               </Box>
             </Stack>
@@ -487,20 +599,20 @@ const handleExportCSV = () => {
 
           <Box
             sx={{
-                mt: 2,
-                p: 2,
-                borderRadius: 2,
-                backgroundColor: "#F8FAFC",
+              gridColumn: { xs: "auto", sm: "1 / -1" },
+              p: 2,
+              borderRadius: 2,
+              backgroundColor: "#F8FAFC",
             }}
-            >
+          >
             <Typography color="text.secondary" fontSize={12}>
-                Total Working Hours
+              Total Working Hours
             </Typography>
 
             <Typography variant="h5" fontWeight={700}>
-                {todayRecord?.hours || "--"}
+              {todayRecord?.hours || "--"}
             </Typography>
-            </Box>
+          </Box>
         </Box>
       </Card>
 
@@ -520,16 +632,26 @@ const handleExportCSV = () => {
         </Typography>
 
         <Stack spacing={2}>
-         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#16A34A" }} />
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                backgroundColor: "#16A34A",
+              }}
+            />
+
             <Box sx={{ flexGrow: 1 }}>
               <Typography fontSize={13} fontWeight={600}>
                 Before 8:00 AM
               </Typography>
+
               <Typography fontSize={12} color="text.secondary">
                 Early arrival.
               </Typography>
             </Box>
+
             <Chip label="Early" size="small" color="success" />
           </Stack>
 
@@ -538,15 +660,25 @@ const handleExportCSV = () => {
             spacing={1.5}
             sx={{ alignItems: "center" }}
           >
-            <Box sx={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#2563EB" }} />
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                backgroundColor: "#2563EB",
+              }}
+            />
+
             <Box sx={{ flexGrow: 1 }}>
               <Typography fontSize={13} fontWeight={600}>
                 8:00 AM – 9:00 AM
               </Typography>
+
               <Typography fontSize={12} color="text.secondary">
                 Allowed arrival window with a 1:1 offset.
               </Typography>
             </Box>
+
             <Chip label="On Time" size="small" color="info" />
           </Stack>
 
@@ -554,16 +686,26 @@ const handleExportCSV = () => {
             direction="row"
             spacing={1.5}
             sx={{ alignItems: "center" }}
-         >
-            <Box sx={{ width: 12, height: 12, borderRadius: "50%", backgroundColor: "#111827" }} />
+          >
+            <Box
+              sx={{
+                width: 12,
+                height: 12,
+                borderRadius: "50%",
+                backgroundColor: "#111827",
+              }}
+            />
+
             <Box sx={{ flexGrow: 1 }}>
               <Typography fontSize={13} fontWeight={600}>
                 After 9:00 AM
               </Typography>
+
               <Typography fontSize={12} color="text.secondary">
                 Late arrival. The late status is not cancelled.
               </Typography>
             </Box>
+
             <Chip
               label="Late"
               size="small"
@@ -588,79 +730,66 @@ const handleExportCSV = () => {
             direction={{ xs: "column", lg: "row" }}
             spacing={2}
             sx={{
-                justifyContent: "space-between",
-                alignItems: { xs: "stretch", lg: "center" },
+              justifyContent: "space-between",
+              alignItems: { xs: "stretch", lg: "center" },
             }}
-            >
+          >
             <Box>
-                <Typography variant="h6" fontWeight={700}>
+              <Typography variant="h6" fontWeight={700}>
                 Attendance History
-                </Typography>
+              </Typography>
 
-                <Typography color="text.secondary" fontSize={13} sx={{ mt: 0.5 }}>
-                Your daily attendance records for this month.
-                </Typography>
+              <Typography color="text.secondary" fontSize={13} sx={{ mt: 0.5 }}>
+                Your daily attendance records for {getMonthLabel(selectedMonthDate)}.
+              </Typography>
             </Box>
 
             <Stack
-                direction={{ xs: "column", sm: "row" }}
-                spacing={1.5}
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1.5}
             >
-                <TextField
+              <TextField
                 size="small"
                 placeholder="Search records..."
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 sx={{ minWidth: 180 }}
                 slotProps={{
-                    input: {
-                        startAdornment: (
-                        <InputAdornment position="start">
-                            <SearchRounded fontSize="small" />
-                        </InputAdornment>
-                        ),
-                    },
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchRounded fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
                 }}
-                />
+              />
 
-                <TextField
-                select
-                size="small"
-                label="Month"
-                value={selectedMonth}
-                onChange={(event) => setSelectedMonth(event.target.value)}
-                sx={{ minWidth: 140 }}
-                >
-                <MenuItem value="All">All Months</MenuItem>
-                <MenuItem value="Nov">November</MenuItem>
-                <MenuItem value="Oct">October</MenuItem>
-                </TextField>
-
-                <TextField
+              <TextField
                 select
                 size="small"
                 label="Status"
                 value={selectedStatus}
                 onChange={(event) => setSelectedStatus(event.target.value)}
                 sx={{ minWidth: 140 }}
-                >
+              >
                 <MenuItem value="All">All Records</MenuItem>
                 <MenuItem value="Present">Present</MenuItem>
                 <MenuItem value="Late">Late</MenuItem>
                 <MenuItem value="Absent">Absent</MenuItem>
-                </TextField>
+              </TextField>
 
-                <Button
+              <Button
                 variant="contained"
                 startIcon={<DownloadRounded />}
                 onClick={handleExportCSV}
                 disabled={filteredRecords.length === 0}
                 sx={{ whiteSpace: "nowrap" }}
-                >
+              >
                 Export CSV
-                </Button>
+              </Button>
             </Stack>
-            </Stack>
+          </Stack>
         </Box>
 
         <TableContainer component={Paper} elevation={0}>
@@ -683,6 +812,7 @@ const handleExportCSV = () => {
                       <Typography fontSize={13} fontWeight={600}>
                         {record.date}
                       </Typography>
+
                       <Typography fontSize={11} color="text.secondary">
                         {record.day}
                       </Typography>
@@ -718,8 +848,9 @@ const handleExportCSV = () => {
                       <Typography fontWeight={600}>
                         No attendance records found
                       </Typography>
+
                       <Typography color="text.secondary" fontSize={13}>
-                        Try selecting another status.
+                        Try selecting another month or status.
                       </Typography>
                     </Box>
                   </TableCell>
@@ -731,7 +862,7 @@ const handleExportCSV = () => {
 
         <Box sx={{ p: 2, backgroundColor: "#FAFBFC" }}>
           <Typography fontSize={12} color="text.secondary">
-            Showing {filteredRecords.length} of {attendanceRecords.length} records
+            Showing {filteredRecords.length} of {monthRecords.length} records
           </Typography>
         </Box>
       </Card>
