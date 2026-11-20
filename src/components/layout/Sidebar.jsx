@@ -1,4 +1,4 @@
-/* eslint-disable no-dupe-keys */
+
 import {
   Box,
   Drawer,
@@ -62,12 +62,24 @@ const roleLabels = {
   [USER_ROLES.ADMIN]: "Admin",
 };
 
-function Sidebar({ role = USER_ROLES.MEMBER }) {
+function Sidebar({
+  role = USER_ROLES.MEMBER,
+  variant = "permanent",
+  mobileOpen = false,
+  onClose = () => {},
+}) {
   const navigationItems = getNavigationByRole(role);
+
+  const isTemporary = variant === "temporary";
 
   return (
     <Drawer
-      variant="permanent"
+      variant={variant}
+      open={isTemporary ? mobileOpen : true}
+      onClose={onClose}
+      ModalProps={{
+        keepMounted: true,
+      }}
       sx={{
         width: SIDEBAR_WIDTH,
         flexShrink: 0,
@@ -83,7 +95,9 @@ function Sidebar({ role = USER_ROLES.MEMBER }) {
     >
       {/* Brand */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 4, px: 1 }}>
-        <BusinessRounded sx={{ fontSize: 30, mr: 1.2, color: "#FFFFFF" }} />
+        <BusinessRounded
+          sx={{ fontSize: 30, mr: 1.2, color: "#FFFFFF" }}
+        />
 
         <Typography fontSize={17} fontWeight={700}>
           Smart WorkSpace
@@ -123,6 +137,7 @@ function Sidebar({ role = USER_ROLES.MEMBER }) {
               key={item.path}
               component={NavLink}
               to={item.path}
+              onClick={isTemporary ? onClose : undefined}
               sx={{
                 borderRadius: "8px",
                 mb: 0.7,
