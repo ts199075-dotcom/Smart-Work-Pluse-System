@@ -19,6 +19,8 @@ export const navigationConfig = {
   [USER_ROLES.TEAM_LEADER]: [
     { label: "Dashboard", path: "/dashboard" },
     { label: "Projects", path: "/projects" },
+    { label: "Tasks", path: "/tasks" },
+    { label: "Performance", path: "/performance" },
     { label: "Teams", path: "/teams" },
     { label: "Sprints", path: "/sprints" },
     { label: "Overtime", path: "/overtime" },

@@ -19,7 +19,7 @@ function DashboardLayout({ role }) {
           backgroundColor: "#F5F7FB",
         }}
       >
-        <Topbar />
+        <Topbar role={role} />
 
         <Box
           sx={{
