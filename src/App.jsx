@@ -5,6 +5,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./layouts/DashboardLayout";
 import PlaceholderPage from "./components/common/PlaceholderPage";
 
+// Shared Features
+import Notifications from "./features/notifications/Notifications";
+
 // Member Pages
 import MemberDashboard from "./features/member/dashboard/MemberDashboard";
 import MemberAttendance from "./features/member/attendance/MemberAttendance";
@@ -12,7 +15,6 @@ import MemberOvertime from "./features/member/overtime/MemberOvertime";
 import MemberPayslip from "./features/member/payroll/MemberPayslip";
 import MemberFinesRewards from "./features/member/cards-fines/MemberFinesRewards";
 import MemberProjectsTasks from "./features/member/tasks/MemberProjectsTasks";
-import MemberNotifications from "./features/member/notifications/MemberNotifications";
 
 // Team Leader Pages
 import TeamLeaderDashboard from "./features/team-leader/dashboard/TeamLeaderDashboard";
@@ -49,18 +51,25 @@ function getPageByRole(
     switch (path) {
       case "/dashboard":
         return <MemberDashboard />;
+
       case "/attendance":
         return <MemberAttendance />;
+
       case "/overtime":
         return <MemberOvertime />;
+
       case "/payslip":
         return <MemberPayslip />;
+
       case "/fines-rewards":
         return <MemberFinesRewards />;
+
       case "/projects":
         return <MemberProjectsTasks />;
+
       case "/notifications":
-        return <MemberNotifications />;
+        return <Notifications role={role} />;
+
       default:
         return <PlaceholderPage title={label} />;
     }
@@ -100,6 +109,19 @@ function getPageByRole(
 
       case "/sprints":
         return <TeamLeaderSprints />;
+
+      case "/notifications":
+        return <Notifications role={role} />;
+
+      default:
+        return <PlaceholderPage title={label} />;
+    }
+  }
+
+  if (role === USER_ROLES.HR) {
+    switch (path) {
+      case "/notifications":
+        return <Notifications role={role} />;
 
       default:
         return <PlaceholderPage title={label} />;
