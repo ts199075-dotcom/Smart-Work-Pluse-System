@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -32,6 +31,16 @@ import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints"
 import HRDashboard from "./features/hr/dashboard/HRDashboard";
 import HREmployees from "./features/hr/employee/HREmployees";
 
+// Admin Pages
+import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
+import AdminUsers from "./features/admin/users/AdminUsers";
+import AdminRoles from "./features/admin/roles/AdminRoles";
+import AdminProjects from "./features/admin/projects/AdminProjects";
+import CompanyAnalytics from "./features/admin/analytics/CompanyAnalytics";
+import CompanySettings from "./features/admin/settings/CompanySettings";
+import AuditLogs from "./features/admin/audit-logs/AuditLogs";
+
+
 // Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
 
@@ -41,7 +50,7 @@ import {
 } from "./config/navigation";
 
 // Temporary role until authentication is implemented
-const CURRENT_ROLE = USER_ROLES.HR;
+const CURRENT_ROLE = USER_ROLES.ADMIN;
 const CURRENT_TEAM_LEADER = "Sara Ahmed";
 
 function getPageByRole(
@@ -133,6 +142,37 @@ function getPageByRole(
 
       case "/notifications":
         return <Notifications role={role} />;
+
+      default:
+        return <PlaceholderPage title={label} />;
+    }
+  }
+
+  if (role === USER_ROLES.ADMIN) {
+    switch (path) {
+      case "/dashboard":
+        return <AdminDashboard projects={projects} />;
+      
+      case "/users":
+        return <AdminUsers />; 
+
+      case "/roles":
+        return <AdminRoles />;  
+
+      case "/projects":
+        return <AdminProjects projects={projects} />;  
+
+      case "/analytics":
+        return <CompanyAnalytics projects={projects} />;
+
+      case "/settings":
+        return <CompanySettings />;  
+        
+      case "/notifications":
+        return <Notifications role={role} />;
+
+      case "/audit-logs":
+        return <AuditLogs />;
 
       default:
         return <PlaceholderPage title={label} />;
