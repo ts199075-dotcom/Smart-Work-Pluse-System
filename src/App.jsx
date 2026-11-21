@@ -35,6 +35,9 @@ import HREmployees from "./features/hr/employee/HREmployees";
 import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
 import AdminUsers from "./features/admin/users/AdminUsers";
 import AdminRoles from "./features/admin/roles/AdminRoles";
+import AdminProjects from "./features/admin/projects/AdminProjects";
+import CompanyAnalytics from "./features/admin/analytics/CompanyAnalytics";
+
 
 // Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
@@ -154,11 +157,15 @@ function getPageByRole(
       case "/roles":
         return <AdminRoles />;  
 
+      case "/projects":
+        return <AdminProjects projects={projects} />;  
+
+      case "/analytics":
+        return <CompanyAnalytics projects={projects} />;
+        
       case "/notifications":
         return <Notifications role={role} />;
 
-      case "/projects":
-      case "/analytics":
       case "/settings":
       case "/audit-logs":
         return <PlaceholderPage title={label} />;
