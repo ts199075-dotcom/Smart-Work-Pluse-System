@@ -31,6 +31,13 @@ import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints"
 // HR Pages
 import HRDashboard from "./features/hr/dashboard/HRDashboard";
 import HREmployees from "./features/hr/employee/HREmployees";
+import HRAttendance from "./features/hr/attendance/HRAttendance";
+import HROvertime from "./features/hr/overtime/HROvertime";
+import HRPayroll from "./features/hr/payroll/HRPayroll";
+import HRLeaves from "./features/hr/leaves/HRLeaves";
+import HRFinesRewards from "./features/hr/fines-rewards/HRFinesRewards";
+import HRReports from "./features/hr/reports/HRReports";
+import HRNotifications from "./features/hr/notifications/HRNotifications";
 
 // Admin Pages
 import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
@@ -82,11 +89,12 @@ function getPageByRole(
 
       case "/projects":
         return <MemberProjectsTasks />;
+
       case "/profile":
         return <MemberProfile />;
 
       case "/member-settings":
-        return <MemberSettings />;  
+        return <MemberSettings />;
 
       case "/notifications":
         return <Notifications role={role} />;
@@ -147,8 +155,26 @@ function getPageByRole(
       case "/employees":
         return <HREmployees />;
 
+      case "/attendance":
+        return <HRAttendance />;
+
+      case "/overtime":
+        return <HROvertime />;
+
+      case "/payroll":
+        return <HRPayroll />;
+
+      case "/leaves":
+        return <HRLeaves />;
+
+      case "/fines-rewards":
+        return <HRFinesRewards />;
+
+      case "/reports":
+        return <HRReports />;
+
       case "/notifications":
-        return <Notifications role={role} />;
+        return <HRNotifications />;
 
       default:
         return <PlaceholderPage title={label} />;
