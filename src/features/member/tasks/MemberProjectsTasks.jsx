@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+import { useMemo } from "react";
 import {
   Box,
   Card,
@@ -7,6 +9,9 @@ import {
   Typography,
   Avatar,
   Divider,
+  FormControl,
+  Select,
+  MenuItem,
 } from "@mui/material";
 
 import {
@@ -16,67 +21,21 @@ import {
   CheckCircleRounded,
 } from "@mui/icons-material";
 
-const projects = [
-  {
-    id: 1,
-    name: "Customer Portal",
-    lead: "Ahmed",
-    progress: 72,
-    status: "Active",
-    color: "#2563EB",
-  },
-  {
-    id: 2,
-    name: "Mobile API",
-    lead: "Sara",
-    progress: 46,
-    status: "Active",
-    color: "#D97706",
-  },
-  {
-    id: 3,
-    name: "Internal Tools",
-    lead: "Omar",
-    progress: 100,
-    status: "Done",
-    color: "#16A34A",
-  },
-];
+import { useAppData } from "../../../hooks/useAppData";
+import { calculateProjectProgress } from "../../team-leader/projects/projectsData";
 
-const tasks = [
-  {
-    id: 1,
-    title: "Design login screen",
-    project: "Customer Portal",
-    dueDate: "Oct 28, 2026",
-    priority: "High",
-    status: "In Progress",
-  },
-  {
-    id: 2,
-    title: "Implement API integration",
-    project: "Mobile API",
-    dueDate: "Oct 30, 2026",
-    priority: "Medium",
-    status: "To Do",
-  },
-  {
-    id: 3,
-    title: "Review dashboard UI",
-    project: "Customer Portal",
-    dueDate: "Oct 25, 2026",
-    priority: "High",
-    status: "Done",
-  },
-];
+// Temporary employee until Backend Authentication is ready
+const CURRENT_MEMBER_ID = 1;
 
 const statusColors = {
   Active: { color: "#2563EB", bg: "#DBEAFE" },
   Done: { color: "#15803D", bg: "#DCFCE7" },
+  Completed: { color: "#15803D", bg: "#DCFCE7" },
   "In Progress": { color: "#2563EB", bg: "#DBEAFE" },
   "To Do": { color: "#64748B", bg: "#F1F5F9" },
   High: { color: "#DC2626", bg: "#FEE2E2" },
   Medium: { color: "#D97706", bg: "#FEF3C7" },
+  Low: { color: "#15803D", bg: "#DCFCE7" },
 };
 
 function StatusChip({ status }) {
@@ -141,7 +100,99 @@ function SummaryCard({ title, value, icon, color, bg, subtitle }) {
   );
 }
 
+function formatDate(date) {
+  if (!date) return "No deadline";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) return "No deadline";
+
+  return parsedDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function isOverdue(task) {
+  if (!task.deadline || task.status === "Completed") return false;
+
+  const deadline = new Date(task.deadline);
+
+  if (Number.isNaN(deadline.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+
+  return deadline < today;
+}
+
 function MemberProjectsTasks() {
+  const { projects, setProjects, employees } = useAppData();
+
+  const currentMember = employees.find(
+    (employee) => employee.id === CURRENT_MEMBER_ID
+  );
+
+  // Projects where the current employee is a member
+  const memberProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const memberIds = project.memberIds || project.membersIds || [];
+      return memberIds.includes(CURRENT_MEMBER_ID);
+    });
+  }, [projects]);
+
+  // Tasks assigned specifically to the current employee
+  const memberTasks = useMemo(() => {
+    return memberProjects.flatMap((project) =>
+      (project.tasks || [])
+        .filter((task) => task.assignedToId === CURRENT_MEMBER_ID)
+        .map((task) => ({
+          ...task,
+          projectId: project.id,
+          projectName: project.name,
+        }))
+    );
+  }, [memberProjects]);
+
+  const activeProjectsCount = memberProjects.filter(
+   (project) => calculateProjectProgress(project.tasks || []) < 100
+  ).length;
+
+  const openTasksCount = memberTasks.filter(
+    (task) => task.status !== "Completed"
+  ).length;
+
+  const overdueTasksCount = memberTasks.filter(isOverdue).length;
+
+  const handleStatusChange = (projectId, taskId, newStatus) => {
+    setProjects((previousProjects) =>
+      previousProjects.map((project) => {
+        if (project.id !== projectId) return project;
+
+        return {
+          ...project,
+          tasks: (project.tasks || []).map((task) =>
+            task.id === taskId && task.assignedToId === CURRENT_MEMBER_ID
+              ? { ...task, status: newStatus }
+              : task
+          ),
+        };
+      })
+    );
+  };
+
+  if (!currentMember) {
+    return (
+      <Box p={3}>
+        <Typography color="error">
+          Employee data could not be found.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
       {/* Page Header */}
@@ -169,7 +220,7 @@ function MemberProjectsTasks() {
       >
         <SummaryCard
           title="Active Projects"
-          value="3"
+          value={activeProjectsCount}
           subtitle="Currently assigned"
           icon={<FolderRounded />}
           color="#2563EB"
@@ -178,7 +229,7 @@ function MemberProjectsTasks() {
 
         <SummaryCard
           title="Open Tasks"
-          value="8"
+          value={openTasksCount}
           subtitle="Tasks to complete"
           icon={<AssignmentRounded />}
           color="#D97706"
@@ -187,7 +238,7 @@ function MemberProjectsTasks() {
 
         <SummaryCard
           title="Overdue Tasks"
-          value="2"
+          value={overdueTasksCount}
           subtitle="Need your attention"
           icon={<WarningAmberRounded />}
           color="#DC2626"
@@ -246,37 +297,60 @@ function MemberProjectsTasks() {
 
               <Divider />
 
-              {projects.map((project) => (
-                <Box key={project.id}>
-                  <Box
-                    sx={{
-                      display: "grid",
-                      gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr",
-                      gap: 1,
-                      alignItems: "center",
-                      py: 2,
-                    }}
-                  >
-                    <Typography fontSize={12} fontWeight={600}>
-                      {project.name}
-                    </Typography>
+              {memberProjects.length === 0 ? (
+                <Typography
+                  textAlign="center"
+                  color="text.secondary"
+                  fontSize={13}
+                  py={4}
+                >
+                  You are not assigned to any projects yet.
+                </Typography>
+              ) : (
+                memberProjects.map((project) => {
+                  const progress = calculateProjectProgress(
+                    project.tasks || []
+                  );
 
-                    <Typography fontSize={12}>
-                      {project.lead}
-                    </Typography>
+                  const leader = employees.find(
+                    (employee) => employee.id === project.leaderId
+                  );
 
-                    <Typography fontSize={12} fontWeight={600}>
-                      {project.progress}%
-                    </Typography>
+                 const projectStatus = progress === 100 ? "Completed" : "Active";
 
-                    <Box>
-                      <StatusChip status={project.status} />
+                  return (
+                    <Box key={project.id}>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "1.5fr 0.7fr 0.7fr 0.8fr",
+                          gap: 1,
+                          alignItems: "center",
+                          py: 2,
+                        }}
+                      >
+                        <Typography fontSize={12} fontWeight={600}>
+                          {project.name}
+                        </Typography>
+
+                        <Typography fontSize={12}>
+                          {leader?.name || "Not assigned"}
+                        </Typography>
+
+                        <Typography fontSize={12} fontWeight={600}>
+                          {progress}%
+                        </Typography>
+
+                        <Box>
+                          <StatusChip status={projectStatus} />
+                        </Box>
+                      </Box>
+
+                      <Divider />
                     </Box>
-                  </Box>
-
-                  <Divider />
-                </Box>
-              ))}
+                  );
+                })
+              )}
             </Box>
           </Box>
         </Card>
@@ -295,39 +369,51 @@ function MemberProjectsTasks() {
             Project Progress
           </Typography>
 
-          <Stack spacing={3}>
-            {projects.map((project) => (
-              <Box key={project.id}>
-                <Stack
-                  direction="row"
-                  justifyContent="space-between"
-                  mb={1}
-                >
-                  <Typography fontSize={12} fontWeight={500}>
-                    {project.name}
-                  </Typography>
+          {memberProjects.length === 0 ? (
+            <Typography fontSize={13} color="text.secondary">
+              No project progress to display.
+            </Typography>
+          ) : (
+            <Stack spacing={3}>
+              {memberProjects.map((project) => {
+                const progress = calculateProjectProgress(
+                  project.tasks || []
+                );
 
-                  <Typography fontSize={12} fontWeight={700}>
-                    {project.progress}%
-                  </Typography>
-                </Stack>
+                return (
+                  <Box key={project.id}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      mb={1}
+                    >
+                      <Typography fontSize={12} fontWeight={500}>
+                        {project.name}
+                      </Typography>
 
-                <LinearProgress
-                  variant="determinate"
-                  value={project.progress}
-                  sx={{
-                    height: 8,
-                    borderRadius: 5,
-                    bgcolor: "#E2E8F0",
-                    "& .MuiLinearProgress-bar": {
-                      bgcolor: project.color,
-                      borderRadius: 5,
-                    },
-                  }}
-                />
-              </Box>
-            ))}
-          </Stack>
+                      <Typography fontSize={12} fontWeight={700}>
+                        {progress}%
+                      </Typography>
+                    </Stack>
+
+                    <LinearProgress
+                      variant="determinate"
+                      value={progress}
+                      sx={{
+                        height: 8,
+                        borderRadius: 5,
+                        bgcolor: "#E2E8F0",
+                        "& .MuiLinearProgress-bar": {
+                          bgcolor: "#2563EB",
+                          borderRadius: 5,
+                        },
+                      }}
+                    />
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
         </Card>
       </Box>
 
@@ -352,7 +438,7 @@ function MemberProjectsTasks() {
           </Typography>
 
           <Chip
-            label={`${tasks.length} Tasks`}
+            label={`${memberTasks.length} Tasks`}
             size="small"
             sx={{
               bgcolor: "#DBEAFE",
@@ -363,11 +449,11 @@ function MemberProjectsTasks() {
         </Stack>
 
         <Box sx={{ overflowX: "auto" }}>
-          <Box sx={{ minWidth: 600 }}>
+          <Box sx={{ minWidth: 650 }}>
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "1.5fr 1.2fr 1fr 0.8fr 0.8fr",
+                gridTemplateColumns: "1.5fr 1.2fr 1fr 0.8fr 1.1fr",
                 gap: 1,
                 pb: 1.5,
               }}
@@ -388,41 +474,72 @@ function MemberProjectsTasks() {
 
             <Divider />
 
-            {tasks.map((task) => (
-              <Box key={task.id}>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "1.5fr 1.2fr 1fr 0.8fr 0.8fr",
-                    gap: 1,
-                    alignItems: "center",
-                    py: 1.8,
-                  }}
-                >
-                  <Typography fontSize={12} fontWeight={600}>
-                    {task.title}
-                  </Typography>
+            {memberTasks.length === 0 ? (
+              <Typography
+                textAlign="center"
+                color="text.secondary"
+                fontSize={13}
+                py={4}
+              >
+                No tasks have been assigned to you yet.
+              </Typography>
+            ) : (
+              memberTasks.map((task) => (
+                <Box key={task.id}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: "1.5fr 1.2fr 1fr 0.8fr 1.1fr",
+                      gap: 1,
+                      alignItems: "center",
+                      py: 1.8,
+                    }}
+                  >
+                    <Typography fontSize={12} fontWeight={600}>
+                      {task.title}
+                    </Typography>
 
-                  <Typography fontSize={12}>
-                    {task.project}
-                  </Typography>
+                    <Typography fontSize={12}>
+                      {task.projectName}
+                    </Typography>
 
-                  <Typography fontSize={11}>
-                    {task.dueDate}
-                  </Typography>
+                    <Typography fontSize={11}>
+                      {formatDate(task.deadline)}
+                    </Typography>
 
-                  <Box>
-                    <StatusChip status={task.priority} />
+                    <Box>
+                      <StatusChip status={task.priority} />
+                    </Box>
+
+                    <FormControl size="small" fullWidth>
+                      <Select
+                        value={task.status}
+                        onChange={(event) =>
+                          handleStatusChange(
+                            task.projectId,
+                            task.id,
+                            event.target.value
+                          )
+                        }
+                        sx={{
+                          fontSize: 11,
+                          borderRadius: 1.5,
+                          "& .MuiSelect-select": {
+                            py: 0.7,
+                          },
+                        }}
+                      >
+                        <MenuItem value="To Do">To Do</MenuItem>
+                        <MenuItem value="In Progress">In Progress</MenuItem>
+                        <MenuItem value="Completed">Completed</MenuItem>
+                      </Select>
+                    </FormControl>
                   </Box>
 
-                  <Box>
-                    <StatusChip status={task.status} />
-                  </Box>
+                  <Divider />
                 </Box>
-
-                <Divider />
-              </Box>
-            ))}
+              ))
+            )}
           </Box>
         </Box>
       </Card>

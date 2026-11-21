@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 
 import Add from "@mui/icons-material/Add";
@@ -9,6 +8,7 @@ import People from "@mui/icons-material/People";
 import Close from "@mui/icons-material/Close";
 
 import {
+  Alert,
   Avatar,
   Box,
   Button,
@@ -24,6 +24,7 @@ import {
   InputAdornment,
   MenuItem,
   Paper,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -35,58 +36,7 @@ import {
   Typography,
 } from "@mui/material";
 
-const initialEmployees = [
-  {
-    id: 1,
-    name: "Ahmed Mohamed",
-    email: "ahmed@smartwork.com",
-    phone: "01012345678",
-    position: "Frontend Developer",
-    department: "IT",
-    status: "Active",
-    joinDate: "2025-01-15",
-  },
-  {
-    id: 2,
-    name: "Sara Ali",
-    email: "sara@smartwork.com",
-    phone: "01112345678",
-    position: "HR Specialist",
-    department: "HR",
-    status: "Active",
-    joinDate: "2025-03-10",
-  },
-  {
-    id: 3,
-    name: "Omar Hassan",
-    email: "omar@smartwork.com",
-    phone: "01212345678",
-    position: "Backend Developer",
-    department: "IT",
-    status: "Active",
-    joinDate: "2025-04-20",
-  },
-  {
-    id: 4,
-    name: "Mariam Samir",
-    email: "mariam@smartwork.com",
-    phone: "01512345678",
-    position: "Accountant",
-    department: "Finance",
-    status: "On Leave",
-    joinDate: "2024-11-05",
-  },
-  {
-    id: 5,
-    name: "Youssef Adel",
-    email: "youssef@smartwork.com",
-    phone: "01098765432",
-    position: "UI/UX Designer",
-    department: "Design",
-    status: "Inactive",
-    joinDate: "2024-08-12",
-  },
-];
+import { useAppData } from "../../../hooks/useAppData";
 
 const emptyEmployee = {
   name: "",
@@ -96,10 +46,12 @@ const emptyEmployee = {
   department: "IT",
   status: "Active",
   joinDate: "",
+  role: "Member",
 };
 
 export default function HREmployees() {
-  const [employees, setEmployees] = useState(initialEmployees);
+  const { employees, setEmployees } = useAppData();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -107,6 +59,12 @@ export default function HREmployees() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [formData, setFormData] = useState(emptyEmployee);
+
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -140,6 +98,14 @@ export default function HREmployees() {
     (employee) => employee.status === "Inactive"
   ).length;
 
+  const showNotification = (message, severity = "success") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
+    });
+  };
+
   const handleOpenAdd = () => {
     setEditingEmployee(null);
     setFormData({ ...emptyEmployee });
@@ -148,6 +114,7 @@ export default function HREmployees() {
 
   const handleOpenEdit = (employee) => {
     setEditingEmployee(employee);
+
     setFormData({
       name: employee.name,
       email: employee.email,
@@ -155,8 +122,10 @@ export default function HREmployees() {
       position: employee.position,
       department: employee.department,
       status: employee.status,
-      joinDate: employee.joinDate,
+      joinDate: employee.joinDate || "",
+      role: employee.role || "Member",
     });
+
     setDialogOpen(true);
   };
 
@@ -176,44 +145,72 @@ export default function HREmployees() {
   };
 
   const handleSaveEmployee = () => {
-    if (
-      !formData.name.trim() ||
-      !formData.email.trim() ||
-      !formData.position.trim()
-    ) {
+    const trimmedName = formData.name.trim();
+    const normalizedEmail = formData.email.trim().toLowerCase();
+
+    if (!trimmedName || !normalizedEmail || !formData.position.trim()) {
+      showNotification("Please fill in all required fields.", "error");
       return;
     }
+
+    const emailAlreadyExists = employees.some(
+      (employee) =>
+        employee.email.toLowerCase() === normalizedEmail &&
+        employee.id !== editingEmployee?.id
+    );
+
+    if (emailAlreadyExists) {
+      showNotification("This email address is already registered.", "error");
+      return;
+    }
+
+    const employeeData = {
+      ...formData,
+      name: trimmedName,
+      email: normalizedEmail,
+      position: formData.position.trim(),
+    };
 
     if (editingEmployee) {
       setEmployees((previous) =>
         previous.map((employee) =>
           employee.id === editingEmployee.id
-            ? { ...employee, ...formData }
+            ? { ...employee, ...employeeData }
             : employee
         )
       );
+
+      showNotification("Employee updated successfully.");
     } else {
       const newEmployee = {
-        ...formData,
+        ...employeeData,
         id: Date.now(),
       };
 
       setEmployees((previous) => [...previous, newEmployee]);
+
+      showNotification("Employee added successfully.");
     }
 
     handleCloseDialog();
   };
 
   const handleDeleteEmployee = (id) => {
+    const employee = employees.find((item) => item.id === id);
+
+    if (!employee) return;
+
     const confirmed = window.confirm(
-      "Are you sure you want to delete this employee?"
+      `Are you sure you want to delete ${employee.name}?`
     );
 
-    if (confirmed) {
-      setEmployees((previous) =>
-        previous.filter((employee) => employee.id !== id)
-      );
-    }
+    if (!confirmed) return;
+
+    setEmployees((previous) =>
+      previous.filter((employee) => employee.id !== id)
+    );
+
+    showNotification("Employee deleted successfully.");
   };
 
   const getStatusColor = (status) => {
@@ -224,6 +221,19 @@ export default function HREmployees() {
         return "warning";
       case "Inactive":
         return "default";
+      default:
+        return "default";
+    }
+  };
+
+  const getRoleColor = (role) => {
+    switch (role) {
+      case "Admin":
+        return "error";
+      case "HR":
+        return "secondary";
+      case "Team Leader":
+        return "primary";
       default:
         return "default";
     }
@@ -256,6 +266,7 @@ export default function HREmployees() {
           <Typography variant="h4" fontWeight={700} color="#172B4D">
             Employees
           </Typography>
+
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
             Manage your company employees and their information.
           </Typography>
@@ -328,6 +339,7 @@ export default function HREmployees() {
                 <Typography color="text.secondary" fontWeight={600}>
                   {item.title}
                 </Typography>
+
                 <People sx={{ color: item.color, fontSize: 26 }} />
               </Stack>
 
@@ -429,7 +441,7 @@ export default function HREmployees() {
         <Divider />
 
         <TableContainer sx={{ overflowX: "auto" }}>
-          <Table sx={{ minWidth: 850 }}>
+          <Table sx={{ minWidth: 900 }}>
             <TableHead sx={{ backgroundColor: "#F8FAFC" }}>
               <TableRow>
                 <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
@@ -437,6 +449,7 @@ export default function HREmployees() {
                 <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Phone</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Join Date</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
                 <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 700 }}>
                   Actions
@@ -464,6 +477,7 @@ export default function HREmployees() {
                           <Typography fontWeight={600} color="#172B4D">
                             {employee.name}
                           </Typography>
+
                           <Typography variant="body2" color="text.secondary">
                             {employee.email}
                           </Typography>
@@ -473,8 +487,17 @@ export default function HREmployees() {
 
                     <TableCell>{employee.position}</TableCell>
                     <TableCell>{employee.department}</TableCell>
-                    <TableCell>{employee.phone}</TableCell>
+                    <TableCell>{employee.phone || "—"}</TableCell>
                     <TableCell>{employee.joinDate || "—"}</TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={employee.role || "Member"}
+                        color={getRoleColor(employee.role || "Member")}
+                        size="small"
+                        sx={{ fontWeight: 600 }}
+                      />
+                    </TableCell>
 
                     <TableCell>
                       <Chip
@@ -514,8 +537,9 @@ export default function HREmployees() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <People sx={{ fontSize: 42, color: "#94A3B8", mb: 1 }} />
+
                     <Typography color="text.secondary">
                       No employees found.
                     </Typography>
@@ -611,6 +635,20 @@ export default function HREmployees() {
             <TextField
               select
               fullWidth
+              label="System Role"
+              name="role"
+              value={formData.role}
+              onChange={handleInputChange}
+            >
+              <MenuItem value="Member">Member</MenuItem>
+              <MenuItem value="Team Leader">Team Leader</MenuItem>
+              <MenuItem value="HR">HR</MenuItem>
+              <MenuItem value="Admin">Admin</MenuItem>
+            </TextField>
+
+            <TextField
+              select
+              fullWidth
               label="Status"
               name="status"
               value={formData.status}
@@ -651,6 +689,32 @@ export default function HREmployees() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Notifications */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={3000}
+        onClose={() =>
+          setNotification((previous) => ({
+            ...previous,
+            open: false,
+          }))
+        }
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          severity={notification.severity}
+          onClose={() =>
+            setNotification((previous) => ({
+              ...previous,
+              open: false,
+            }))
+          }
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

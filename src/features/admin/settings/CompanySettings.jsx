@@ -1,33 +1,19 @@
 import { useState } from "react";
 import {
+  Alert,
   Box,
+  Button,
   Card,
   CardContent,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormGroup,
-  FormControlLabel,
   Checkbox,
-  Switch,
   Divider,
-  Stack,
+  FormControlLabel,
   Snackbar,
-  Alert,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
 } from "@mui/material";
-import {
-  BusinessRounded,
-  ScheduleRounded,
-  AccessTimeRounded,
-  NotificationsActiveRounded,
-  SaveRounded,
-  RestartAltRounded,
-} from "@mui/icons-material";
 
 const initialSettings = {
   companyName: "Smart WorkSpace",
@@ -36,84 +22,50 @@ const initialSettings = {
   website: "www.smartworkspace.com",
   timezone: "Africa/Cairo",
   currency: "EGP",
-
   workDays: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
   startTime: "09:00",
   endTime: "17:00",
-
   gracePeriod: 15,
   overtimeRequiresApproval: true,
   trackAttendance: true,
-
   emailNotifications: true,
   attendanceAlerts: true,
   systemAnnouncements: true,
 };
 
-const weekDays = [
-  "Saturday",
+const SETTINGS_STORAGE_KEY = "smart-workspace-company-settings";
+
+const getInitialSettings = () => {
+  try {
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+
+    if (savedSettings) {
+      return {
+        ...initialSettings,
+        ...JSON.parse(savedSettings),
+      };
+    }
+  } catch (error) {
+    console.error("Failed to load company settings:", error);
+  }
+
+  return { ...initialSettings };
+};
+
+const workDaysOptions = [
   "Sunday",
   "Monday",
   "Tuesday",
   "Wednesday",
   "Thursday",
   "Friday",
+  "Saturday",
 ];
 
-const SectionHeader = ({ icon, title, description }) => (
-  <Stack direction="row" spacing={1.5} alignItems="center" mb={3}>
-    <Box
-      sx={{
-        width: 42,
-        height: 42,
-        borderRadius: "12px",
-        bgcolor: "#EFF4FF",
-        color: "#2563EB",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      {icon}
-    </Box>
-
-    <Box>
-      <Typography fontWeight={700} fontSize={17} color="#17365D">
-        {title}
-      </Typography>
-
-      <Typography fontSize={13} color="text.secondary">
-        {description}
-      </Typography>
-    </Box>
-  </Stack>
-);
-
-const SectionCard = ({ children }) => (
-  <Card
-    elevation={0}
-    sx={{
-      border: "1px solid #E8EDF5",
-      borderRadius: "14px",
-      height: "100%",
-    }}
-  >
-    <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-      {children}
-    </CardContent>
-  </Card>
-);
-
-const fieldStyles = {
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "10px",
-    backgroundColor: "#FFFFFF",
-  },
-};
-
 export default function CompanySettings() {
-  const [settings, setSettings] = useState(initialSettings);
-  const [savedSettings, setSavedSettings] = useState(initialSettings);
+  const [settings, setSettings] = useState(getInitialSettings);
+  const [savedSettings, setSavedSettings] = useState(getInitialSettings);
+
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -129,11 +81,11 @@ export default function CompanySettings() {
 
   const handleWorkDayChange = (day) => {
     setSettings((prev) => {
-      const selected = prev.workDays.includes(day);
+      const isSelected = prev.workDays.includes(day);
 
       return {
         ...prev,
-        workDays: selected
+        workDays: isSelected
           ? prev.workDays.filter((item) => item !== day)
           : [...prev.workDays, day],
       };
@@ -141,10 +93,30 @@ export default function CompanySettings() {
   };
 
   const handleSave = () => {
-    if (!settings.companyName.trim() || !settings.companyEmail.trim()) {
+    if (!settings.companyName.trim()) {
       setSnackbar({
         open: true,
-        message: "Company name and email are required.",
+        message: "Company name is required.",
+        severity: "error",
+      });
+      return;
+    }
+
+    if (!settings.companyEmail.trim()) {
+      setSnackbar({
+        open: true,
+        message: "Company email is required.",
+        severity: "error",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(settings.companyEmail)) {
+      setSnackbar({
+        open: true,
+        message: "Please enter a valid company email.",
         severity: "error",
       });
       return;
@@ -162,23 +134,64 @@ export default function CompanySettings() {
     if (settings.startTime >= settings.endTime) {
       setSnackbar({
         open: true,
-        message: "Work end time must be later than start time.",
+        message: "End time must be later than start time.",
         severity: "error",
       });
       return;
     }
 
-    setSavedSettings({ ...settings });
+    if (
+      !Number.isFinite(Number(settings.gracePeriod)) ||
+      Number(settings.gracePeriod) < 0
+    ) {
+      setSnackbar({
+        open: true,
+        message: "Grace period must be a valid non-negative number.",
+        severity: "error",
+      });
+      return;
+    }
 
-    setSnackbar({
-      open: true,
-      message: "Company settings saved successfully.",
-      severity: "success",
-    });
+    const updatedSettings = {
+      ...settings,
+      companyName: settings.companyName.trim(),
+      companyEmail: settings.companyEmail.trim(),
+      gracePeriod: Number(settings.gracePeriod),
+      workDays: [...settings.workDays],
+    };
+
+    try {
+      localStorage.setItem(
+        SETTINGS_STORAGE_KEY,
+        JSON.stringify(updatedSettings)
+      );
+
+      setSettings(updatedSettings);
+      setSavedSettings(updatedSettings);
+
+      setSnackbar({
+        open: true,
+        message: "Company settings saved successfully.",
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Failed to save company settings:", error);
+
+      setSnackbar({
+        open: true,
+        message: "Failed to save settings. Please try again.",
+        severity: "error",
+      });
+    }
   };
 
   const handleReset = () => {
-    setSettings({ ...savedSettings });
+    const restoredSettings = {
+      ...savedSettings,
+      workDays: [...savedSettings.workDays],
+    };
+
+    setSettings(restoredSettings);
 
     setSnackbar({
       open: true,
@@ -187,458 +200,465 @@ export default function CompanySettings() {
     });
   };
 
+  const handleCloseSnackbar = (_, reason) => {
+    if (reason === "clickaway") return;
+
+    setSnackbar((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
+  const sectionCardSx = {
+    borderRadius: 3,
+    border: "1px solid",
+    borderColor: "divider",
+    boxShadow: "none",
+  };
+
+  const sectionTitleSx = {
+    fontSize: "1.1rem",
+    fontWeight: 700,
+    mb: 0.5,
+  };
+
+  const sectionDescriptionSx = {
+    color: "text.secondary",
+    fontSize: "0.875rem",
+    mb: 3,
+  };
+
+  const fieldGridSx = {
+    display: "grid",
+    gridTemplateColumns: {
+      xs: "1fr",
+      sm: "repeat(2, minmax(0, 1fr))",
+    },
+    gap: 2.5,
+  };
+
   return (
-    <Box
-      sx={{
-        width: "100%",
-        maxWidth: "none",
-        boxSizing: "border-box",
-        p: { xs: 2, sm: 2.5, md: 3 },
-        bgcolor: "#F5F7FB",
-        minHeight: "100%",
-      }}
-    >
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Page Header */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", sm: "center" }}
-        spacing={2}
-        mb={3}
+      <Box
+        sx={{
+          mb: 3,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: { xs: "flex-start", sm: "center" },
+          flexDirection: { xs: "column", sm: "row" },
+          gap: 2,
+        }}
       >
         <Box>
-          <Typography
-            variant="h4"
-            fontWeight={700}
-            color="#17365D"
-            sx={{ fontSize: { xs: 25, md: 30 } }}
-          >
+          <Typography variant="h5" fontWeight={700}>
             Company Settings
           </Typography>
 
-          <Typography color="text.secondary" mt={0.5} fontSize={14}>
-            Manage your company's general information and system preferences.
+          <Typography color="text.secondary" sx={{ mt: 0.5 }}>
+            Manage your company information and workspace preferences.
           </Typography>
         </Box>
+      </Box>
 
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            startIcon={<RestartAltRounded />}
-            onClick={handleReset}
-            sx={{
-              borderRadius: "10px",
-              textTransform: "none",
-              fontWeight: 600,
-            }}
-          >
-            Discard Changes
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<SaveRounded />}
-            onClick={handleSave}
-            sx={{
-              bgcolor: "#2563EB",
-              borderRadius: "10px",
-              textTransform: "none",
-              fontWeight: 600,
-              px: 2.5,
-              "&:hover": { bgcolor: "#1D4ED8" },
-            }}
-          >
-            Save Changes
-          </Button>
-        </Stack>
-      </Stack>
-
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "minmax(0, 1fr)",
-            lg: "repeat(2, minmax(0, 1fr))",
-          },
-          gap: 2.5,
-          alignItems: "stretch",
-        }}
-      >
+      <Stack spacing={3}>
         {/* Company Information */}
-        <SectionCard>
-          <SectionHeader
-            icon={<BusinessRounded />}
-            title="Company Information"
-            description="Basic information about your organization."
-          />
+        <Card sx={sectionCardSx}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={sectionTitleSx}>
+              Company Information
+            </Typography>
 
-          <Stack spacing={2.5}>
-            <TextField
-              fullWidth
-              label="Company Name"
-              value={settings.companyName}
-              onChange={(e) => handleChange("companyName", e.target.value)}
-              sx={fieldStyles}
-            />
+            <Typography sx={sectionDescriptionSx}>
+              Update your company's basic information and contact details.
+            </Typography>
 
-            <TextField
-              fullWidth
-              label="Company Email"
-              type="email"
-              value={settings.companyEmail}
-              onChange={(e) => handleChange("companyEmail", e.target.value)}
-              sx={fieldStyles}
-            />
+            <Box sx={fieldGridSx}>
+              <TextField
+                fullWidth
+                label="Company Name"
+                value={settings.companyName}
+                onChange={(e) =>
+                  handleChange("companyName", e.target.value)
+                }
+              />
 
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={settings.companyPhone}
-              onChange={(e) => handleChange("companyPhone", e.target.value)}
-              sx={fieldStyles}
-            />
+              <TextField
+                fullWidth
+                label="Company Email"
+                type="email"
+                value={settings.companyEmail}
+                onChange={(e) =>
+                  handleChange("companyEmail", e.target.value)
+                }
+              />
 
-            <TextField
-              fullWidth
-              label="Website"
-              value={settings.website}
-              onChange={(e) => handleChange("website", e.target.value)}
-              sx={fieldStyles}
-            />
+              <TextField
+                fullWidth
+                label="Company Phone"
+                value={settings.companyPhone}
+                onChange={(e) =>
+                  handleChange("companyPhone", e.target.value)
+                }
+              />
+
+              <TextField
+                fullWidth
+                label="Website"
+                value={settings.website}
+                onChange={(e) =>
+                  handleChange("website", e.target.value)
+                }
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Regional Settings */}
+        <Card sx={sectionCardSx}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={sectionTitleSx}>
+              Regional Settings
+            </Typography>
+
+            <Typography sx={sectionDescriptionSx}>
+              Configure your company's timezone and preferred currency.
+            </Typography>
+
+            <Box sx={fieldGridSx}>
+              <TextField
+                fullWidth
+                label="Timezone"
+                value={settings.timezone}
+                onChange={(e) =>
+                  handleChange("timezone", e.target.value)
+                }
+              />
+
+              <TextField
+                fullWidth
+                label="Currency"
+                value={settings.currency}
+                onChange={(e) =>
+                  handleChange("currency", e.target.value)
+                }
+              />
+            </Box>
+          </CardContent>
+        </Card>
+
+        {/* Working Hours */}
+        <Card sx={sectionCardSx}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={sectionTitleSx}>
+              Working Hours
+            </Typography>
+
+            <Typography sx={sectionDescriptionSx}>
+              Set your company's official working days and hours.
+            </Typography>
+
+            <Typography fontWeight={600} sx={{ mb: 1.5 }}>
+              Working Days
+            </Typography>
 
             <Box
               sx={{
                 display: "grid",
                 gridTemplateColumns: {
-                  xs: "1fr",
-                  sm: "repeat(2, minmax(0, 1fr))",
+                  xs: "repeat(2, 1fr)",
+                  sm: "repeat(4, 1fr)",
                 },
-                gap: 2,
+                gap: 1,
+                mb: 3,
               }}
             >
-              <FormControl fullWidth>
-                <InputLabel>Timezone</InputLabel>
-                <Select
-                  value={settings.timezone}
-                  label="Timezone"
-                  onChange={(e) => handleChange("timezone", e.target.value)}
-                  sx={{ borderRadius: "10px" }}
-                >
-                  <MenuItem value="Africa/Cairo">Cairo (GMT+2)</MenuItem>
-                  <MenuItem value="Europe/London">London (GMT+0)</MenuItem>
-                  <MenuItem value="Europe/Paris">Paris (GMT+1)</MenuItem>
-                  <MenuItem value="Asia/Dubai">Dubai (GMT+4)</MenuItem>
-                  <MenuItem value="America/New_York">New York (GMT-5)</MenuItem>
-                </Select>
-              </FormControl>
-
-              <FormControl fullWidth>
-                <InputLabel>Currency</InputLabel>
-                <Select
-                  value={settings.currency}
-                  label="Currency"
-                  onChange={(e) => handleChange("currency", e.target.value)}
-                  sx={{ borderRadius: "10px" }}
-                >
-                  <MenuItem value="EGP">EGP - Egyptian Pound</MenuItem>
-                  <MenuItem value="USD">USD - US Dollar</MenuItem>
-                  <MenuItem value="EUR">EUR - Euro</MenuItem>
-                  <MenuItem value="SAR">SAR - Saudi Riyal</MenuItem>
-                  <MenuItem value="AED">AED - UAE Dirham</MenuItem>
-                </Select>
-              </FormControl>
+              {workDaysOptions.map((day) => (
+                <FormControlLabel
+                  key={day}
+                  control={
+                    <Checkbox
+                      checked={settings.workDays.includes(day)}
+                      onChange={() => handleWorkDayChange(day)}
+                    />
+                  }
+                  label={day}
+                />
+              ))}
             </Box>
-          </Stack>
-        </SectionCard>
 
-        {/* Work Schedule */}
-        <SectionCard>
-          <SectionHeader
-            icon={<ScheduleRounded />}
-            title="Work Schedule"
-            description="Define the official working days and hours."
-          />
+            <Divider sx={{ mb: 3 }} />
 
-          <Typography fontWeight={600} fontSize={14} mb={1.5}>
-            Working Days
-          </Typography>
+            <Typography fontWeight={600} sx={{ mb: 1.5 }}>
+              Daily Working Hours
+            </Typography>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "repeat(2, minmax(0, 1fr))",
-                sm: "repeat(3, minmax(0, 1fr))",
-              },
-              gap: 0.5,
-              mb: 3,
-            }}
-          >
-            {weekDays.map((day) => (
-              <FormControlLabel
-                key={day}
-                control={
-                  <Checkbox
-                    checked={settings.workDays.includes(day)}
-                    onChange={() => handleWorkDayChange(day)}
-                    sx={{
-                      color: "#94A3B8",
-                      "&.Mui-checked": { color: "#2563EB" },
-                    }}
-                  />
+            <Box sx={fieldGridSx}>
+              <TextField
+                fullWidth
+                label="Start Time"
+                type="time"
+                value={settings.startTime}
+                onChange={(e) =>
+                  handleChange("startTime", e.target.value)
                 }
-                label={
-                  <Typography fontSize={13}>
-                    {day}
-                  </Typography>
-                }
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
               />
-            ))}
-          </Box>
 
-          <Divider sx={{ mb: 2.5 }} />
-
-          <Typography fontWeight={600} fontSize={14} mb={2}>
-            Working Hours
-          </Typography>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, minmax(0, 1fr))",
-              },
-              gap: 2,
-            }}
-          >
-            <TextField
-              fullWidth
-              label="Start Time"
-              type="time"
-              value={settings.startTime}
-              onChange={(e) => handleChange("startTime", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={fieldStyles}
-            />
-
-            <TextField
-              fullWidth
-              label="End Time"
-              type="time"
-              value={settings.endTime}
-              onChange={(e) => handleChange("endTime", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={fieldStyles}
-            />
-          </Box>
-        </SectionCard>
+              <TextField
+                fullWidth
+                label="End Time"
+                type="time"
+                value={settings.endTime}
+                onChange={(e) =>
+                  handleChange("endTime", e.target.value)
+                }
+                slotProps={{
+                  inputLabel: { shrink: true },
+                }}
+              />
+            </Box>
+          </CardContent>
+        </Card>
 
         {/* Attendance Rules */}
-        <SectionCard>
-          <SectionHeader
-            icon={<AccessTimeRounded />}
-            title="Attendance Rules"
-            description="Configure attendance tracking and overtime policies."
-          />
+        <Card sx={sectionCardSx}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={sectionTitleSx}>
+              Attendance Rules
+            </Typography>
 
-          <Stack spacing={2.5}>
-            <TextField
-              fullWidth
-              type="number"
-              label="Late Arrival Grace Period (Minutes)"
-              value={settings.gracePeriod}
-              onChange={(e) =>
-                handleChange(
-                  "gracePeriod",
-                  Math.max(0, Number(e.target.value))
-                )
-              }
-              inputProps={{ min: 0 }}
-              helperText="Allowed delay before an employee is marked as late."
-              sx={fieldStyles}
-            />
+            <Typography sx={sectionDescriptionSx}>
+              Configure attendance tracking and overtime policies.
+            </Typography>
 
-            <Divider />
+            <Stack spacing={2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography fontWeight={600}>
+                    Track Attendance
+                  </Typography>
 
-            <FormControlLabel
-              control={
+                  <Typography variant="body2" color="text.secondary">
+                    Enable attendance tracking for employees.
+                  </Typography>
+                </Box>
+
                 <Switch
                   checked={settings.trackAttendance}
                   onChange={(e) =>
                     handleChange("trackAttendance", e.target.checked)
                   }
                 />
-              }
-              label={
+              </Box>
+
+              <Divider />
+
+              <Box>
+                <Typography fontWeight={600} sx={{ mb: 1 }}>
+                  Grace Period (Minutes)
+                </Typography>
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  value={settings.gracePeriod}
+                  onChange={(e) =>
+                    handleChange(
+                      "gracePeriod",
+                      Math.max(0, Number(e.target.value))
+                    )
+                  }
+                  inputProps={{ min: 0 }}
+                  helperText="Allowed delay before an employee is marked as late."
+                />
+              </Box>
+
+              <Divider />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
                 <Box>
-                  <Typography fontWeight={600} fontSize={14}>
-                    Attendance Tracking
+                  <Typography fontWeight={600}>
+                    Overtime Requires Approval
                   </Typography>
-                  <Typography fontSize={12} color="text.secondary">
-                    Enable employee attendance monitoring.
+
+                  <Typography variant="body2" color="text.secondary">
+                    Require approval before recording overtime hours.
                   </Typography>
                 </Box>
-              }
-              sx={{ alignItems: "flex-start", ml: 0 }}
-            />
 
-            <Divider />
-
-            <FormControlLabel
-              control={
                 <Switch
                   checked={settings.overtimeRequiresApproval}
                   onChange={(e) =>
-                    handleChange("overtimeRequiresApproval", e.target.checked)
+                    handleChange(
+                      "overtimeRequiresApproval",
+                      e.target.checked
+                    )
                   }
                 />
-              }
-              label={
-                <Box>
-                  <Typography fontWeight={600} fontSize={14}>
-                    Overtime Approval
-                  </Typography>
-                  <Typography fontSize={12} color="text.secondary">
-                    Require approval before overtime is accepted.
-                  </Typography>
-                </Box>
-              }
-              sx={{ alignItems: "flex-start", ml: 0 }}
-            />
-          </Stack>
-        </SectionCard>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
 
         {/* Notifications */}
-        <SectionCard>
-          <SectionHeader
-            icon={<NotificationsActiveRounded />}
-            title="System Notifications"
-            description="Choose which company notifications should be enabled."
-          />
+        <Card sx={sectionCardSx}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={sectionTitleSx}>
+              Notifications
+            </Typography>
 
-          <Stack spacing={2.5}>
-            <FormControlLabel
-              control={
+            <Typography sx={sectionDescriptionSx}>
+              Manage company notification preferences.
+            </Typography>
+
+            <Stack spacing={2}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography fontWeight={600}>
+                    Email Notifications
+                  </Typography>
+
+                  <Typography variant="body2" color="text.secondary">
+                    Enable email notifications for company updates.
+                  </Typography>
+                </Box>
+
                 <Switch
                   checked={settings.emailNotifications}
                   onChange={(e) =>
                     handleChange("emailNotifications", e.target.checked)
                   }
                 />
-              }
-              label={
+              </Box>
+
+              <Divider />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
                 <Box>
-                  <Typography fontWeight={600} fontSize={14}>
-                    Email Notifications
+                  <Typography fontWeight={600}>
+                    Attendance Alerts
                   </Typography>
-                  <Typography fontSize={12} color="text.secondary">
-                    Enable system notification emails.
+
+                  <Typography variant="body2" color="text.secondary">
+                    Receive notifications about attendance activities.
                   </Typography>
                 </Box>
-              }
-              sx={{ alignItems: "flex-start", ml: 0 }}
-            />
 
-            <Divider />
-
-            <FormControlLabel
-              control={
                 <Switch
                   checked={settings.attendanceAlerts}
                   onChange={(e) =>
                     handleChange("attendanceAlerts", e.target.checked)
                   }
                 />
-              }
-              label={
+              </Box>
+
+              <Divider />
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
                 <Box>
-                  <Typography fontWeight={600} fontSize={14}>
-                    Attendance Alerts
+                  <Typography fontWeight={600}>
+                    System Announcements
                   </Typography>
-                  <Typography fontSize={12} color="text.secondary">
-                    Receive alerts about attendance and absence issues.
+
+                  <Typography variant="body2" color="text.secondary">
+                    Receive important system announcements.
                   </Typography>
                 </Box>
-              }
-              sx={{ alignItems: "flex-start", ml: 0 }}
-            />
 
-            <Divider />
-
-            <FormControlLabel
-              control={
                 <Switch
                   checked={settings.systemAnnouncements}
                   onChange={(e) =>
-                    handleChange("systemAnnouncements", e.target.checked)
+                    handleChange(
+                      "systemAnnouncements",
+                      e.target.checked
+                    )
                   }
                 />
-              }
-              label={
-                <Box>
-                  <Typography fontWeight={600} fontSize={14}>
-                    System Announcements
-                  </Typography>
-                  <Typography fontSize={12} color="text.secondary">
-                    Receive important company-wide announcements.
-                  </Typography>
-                </Box>
-              }
-              sx={{ alignItems: "flex-start", ml: 0 }}
-            />
-          </Stack>
-        </SectionCard>
-      </Box>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
 
-      {/* Bottom Actions */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="flex-end"
-        spacing={1.5}
-        mt={3}
-      >
-        <Button
-          variant="outlined"
-          startIcon={<RestartAltRounded />}
-          onClick={handleReset}
+        {/* Actions */}
+        <Box
           sx={{
-            borderRadius: "10px",
-            textTransform: "none",
-            fontWeight: 600,
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 2,
+            flexWrap: "wrap",
+            pb: 2,
           }}
         >
-          Discard Changes
-        </Button>
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={handleReset}
+          >
+            Discard Changes
+          </Button>
 
-        <Button
-          variant="contained"
-          startIcon={<SaveRounded />}
-          onClick={handleSave}
-          sx={{
-            bgcolor: "#2563EB",
-            borderRadius: "10px",
-            textTransform: "none",
-            fontWeight: 600,
-            px: 3,
-            "&:hover": { bgcolor: "#1D4ED8" },
-          }}
-        >
-          Save Changes
-        </Button>
+          <Button
+            variant="contained"
+            onClick={handleSave}
+          >
+            Save Changes
+          </Button>
+        </Box>
       </Stack>
 
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3500}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
       >
         <Alert
+          onClose={handleCloseSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          sx={{ borderRadius: "10px" }}
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

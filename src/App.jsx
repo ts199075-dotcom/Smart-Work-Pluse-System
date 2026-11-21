@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -14,6 +13,8 @@ import MemberOvertime from "./features/member/overtime/MemberOvertime";
 import MemberPayslip from "./features/member/payroll/MemberPayslip";
 import MemberFinesRewards from "./features/member/cards-fines/MemberFinesRewards";
 import MemberProjectsTasks from "./features/member/tasks/MemberProjectsTasks";
+import MemberProfile from "./features/member/profile/MemberProfile";
+import MemberSettings from "./features/member/settings/MemberSettings";
 
 // Team Leader Pages
 import TeamLeaderDashboard from "./features/team-leader/dashboard/TeamLeaderDashboard";
@@ -40,10 +41,11 @@ import CompanyAnalytics from "./features/admin/analytics/CompanyAnalytics";
 import CompanySettings from "./features/admin/settings/CompanySettings";
 import AuditLogs from "./features/admin/audit-logs/AuditLogs";
 
+// Shared Context
+import { AppDataProvider } from "./contexts/AppDataContext.jsx";
+import { useAppData } from "./hooks/useAppData";
 
-// Team Leader Projects Data
-import { initialProjects } from "./features/team-leader/projects/projectsData";
-
+// Navigation
 import {
   USER_ROLES,
   getNavigationByRole,
@@ -80,6 +82,11 @@ function getPageByRole(
 
       case "/projects":
         return <MemberProjectsTasks />;
+      case "/profile":
+        return <MemberProfile />;
+
+      case "/member-settings":
+        return <MemberSettings />;  
 
       case "/notifications":
         return <Notifications role={role} />;
@@ -152,22 +159,22 @@ function getPageByRole(
     switch (path) {
       case "/dashboard":
         return <AdminDashboard projects={projects} />;
-      
+
       case "/users":
-        return <AdminUsers />; 
+        return <AdminUsers />;
 
       case "/roles":
-        return <AdminRoles />;  
+        return <AdminRoles />;
 
       case "/projects":
-        return <AdminProjects projects={projects} />;  
+        return <AdminProjects projects={projects} />;
 
       case "/analytics":
         return <CompanyAnalytics projects={projects} />;
 
       case "/settings":
-        return <CompanySettings />;  
-        
+        return <CompanySettings />;
+
       case "/notifications":
         return <Notifications role={role} />;
 
@@ -182,10 +189,11 @@ function getPageByRole(
   return <PlaceholderPage title={label} />;
 }
 
-function App() {
-  const navigationItems = getNavigationByRole(CURRENT_ROLE);
+// Main application content
+function AppContent() {
+  const { projects, setProjects } = useAppData();
 
-  const [projects, setProjects] = useState(initialProjects);
+  const navigationItems = getNavigationByRole(CURRENT_ROLE);
 
   return (
     <BrowserRouter>
@@ -216,7 +224,6 @@ function App() {
               path="projects/:projectId"
               element={
                 <TeamLeaderProjectDetails
-                  projects={projects}
                   currentTeamLeader={CURRENT_TEAM_LEADER}
                 />
               }
@@ -230,6 +237,15 @@ function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+  );
+}
+
+// Application root
+function App() {
+  return (
+    <AppDataProvider>
+      <AppContent />
+    </AppDataProvider>
   );
 }
 

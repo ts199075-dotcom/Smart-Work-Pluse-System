@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useMemo, useState } from "react";
 
 import {
@@ -18,7 +17,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Tooltip,
 } from "@mui/material";
 
 import {
@@ -33,25 +31,62 @@ import {
   CalendarMonthOutlined,
 } from "@mui/icons-material";
 
-const getProjectStatus = (status) => {
-  switch (status?.toLowerCase()) {
+import { useAppData } from "../../../hooks/useAppData";
+
+const getProjectStatus = (status, progress) => {
+  const normalizedStatus = status?.toLowerCase();
+
+  switch (normalizedStatus) {
     case "completed":
       return { label: "Completed", color: "success" };
+
     case "in progress":
       return { label: "In Progress", color: "info" };
+
     case "on hold":
       return { label: "On Hold", color: "warning" };
+
     case "planning":
       return { label: "Planning", color: "default" };
+
     default:
-      return { label: status || "Unknown", color: "default" };
+      if (progress === 100) {
+        return { label: "Completed", color: "success" };
+      }
+
+      return { label: status || "Active", color: "info" };
   }
 };
 
-const isOverdue = (project) => {
-  if (!project.endDate || project.status === "Completed") return false;
+const calculateProgress = (tasks = []) => {
+  if (!tasks.length) return 0;
+
+  const completedTasks = tasks.filter(
+    (task) => task.status?.toLowerCase() === "completed"
+  ).length;
+
+  return Math.round((completedTasks / tasks.length) * 100);
+};
+
+const getProjectMembers = (project) => {
+  const members =
+    project.membersIds ||
+    project.memberIds ||
+    project.memberId ||
+    [];
+
+  if (Array.isArray(members)) {
+    return [...new Set(members)];
+  }
+
+  return members ? [members] : [];
+};
+
+const isOverdue = (project, progress) => {
+  if (progress === 100 || !project.endDate) return false;
 
   const endDate = new Date(project.endDate);
+
   if (Number.isNaN(endDate.getTime())) return false;
 
   endDate.setHours(23, 59, 59, 999);
@@ -71,22 +106,6 @@ const formatDate = (date) => {
     day: "numeric",
     year: "numeric",
   });
-};
-
-const getMemberCount = (members) => {
-  return Array.isArray(members) ? members.length : 0;
-};
-
-const getTaskCount = (tasks) => {
-  return Array.isArray(tasks) ? tasks.length : 0;
-};
-
-const getCompletedTasks = (tasks) => {
-  if (!Array.isArray(tasks)) return 0;
-
-  return tasks.filter((task) =>
-    ["completed", "done"].includes(task.status?.toLowerCase())
-  ).length;
 };
 
 function StatCard({ title, value, subtitle, icon, color, bgColor }) {
@@ -145,50 +164,88 @@ function StatCard({ title, value, subtitle, icon, color, bgColor }) {
   );
 }
 
-export default function AdminProjects({ projects = [] }) {
+export default function AdminProjects() {
+  const { projects, employees } = useAppData();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
   const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeEmployees = Array.isArray(employees) ? employees : [];
 
-  const totalProjects = safeProjects.length;
+  const enrichedProjects = useMemo(() => {
+    return safeProjects.map((project) => {
+      const tasks = Array.isArray(project.tasks) ? project.tasks : [];
 
-  const completedProjects = safeProjects.filter(
-    (project) => project.status?.toLowerCase() === "completed"
-  ).length;
+      const progress = calculateProgress(tasks);
 
-  const inProgressProjects = safeProjects.filter(
-    (project) => project.status?.toLowerCase() === "in progress"
-  ).length;
+      const leader = safeEmployees.find(
+        (employee) => employee.id === project.leaderId
+      );
 
-  const overdueProjects = safeProjects.filter(isOverdue).length;
+      const memberIds = getProjectMembers(project);
 
-  const filteredProjects = useMemo(() => {
-    const search = searchTerm.toLowerCase().trim();
-
-    return safeProjects.filter((project) => {
-      const matchesSearch =
-        project.name?.toLowerCase().includes(search) ||
-        project.leader?.toLowerCase().includes(search) ||
-        project.description?.toLowerCase().includes(search);
-
-      const matchesStatus =
-        statusFilter === "All" || project.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
+      return {
+        ...project,
+        tasks,
+        progress,
+        leaderName: leader?.name || "Not assigned",
+        memberCount: memberIds.length,
+        completedTasks: tasks.filter(
+          (task) => task.status?.toLowerCase() === "completed"
+        ).length,
+        overdue: isOverdue(project, progress),
+      };
     });
-  }, [safeProjects, searchTerm, statusFilter]);
+  }, [safeProjects, safeEmployees]);
+
+  // Statistics
+  const totalProjects = enrichedProjects.length;
+
+  const completedProjects = enrichedProjects.filter(
+    (project) => project.progress === 100
+  ).length;
+
+  const inProgressProjects = enrichedProjects.filter(
+    (project) =>
+      project.progress > 0 && project.progress < 100
+  ).length;
+
+  const overdueProjects = enrichedProjects.filter(
+    (project) => project.overdue
+  ).length;
 
   const averageProgress =
     totalProjects > 0
       ? Math.round(
-          safeProjects.reduce(
-            (total, project) =>
-              total + Math.min(100, Math.max(0, Number(project.progress) || 0)),
+          enrichedProjects.reduce(
+            (total, project) => total + project.progress,
             0
           ) / totalProjects
         )
       : 0;
+
+  // Search and filters
+  const filteredProjects = useMemo(() => {
+    const search = searchTerm.toLowerCase().trim();
+
+    return enrichedProjects.filter((project) => {
+      const matchesSearch =
+        project.name?.toLowerCase().includes(search) ||
+        project.leaderName.toLowerCase().includes(search) ||
+        project.description?.toLowerCase().includes(search);
+
+      const status = getProjectStatus(
+        project.status,
+        project.progress
+      ).label;
+
+      const matchesStatus =
+        statusFilter === "All" || status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [enrichedProjects, searchTerm, statusFilter]);
 
   return (
     <Box sx={{ pb: 4 }}>
@@ -431,18 +488,10 @@ export default function AdminProjects({ projects = [] }) {
             <TableBody>
               {filteredProjects.length > 0 ? (
                 filteredProjects.map((project) => {
-                  const status = getProjectStatus(project.status);
-                  const tasks = Array.isArray(project.tasks)
-                    ? project.tasks
-                    : [];
-
-                  const completedTasks = getCompletedTasks(tasks);
-                  const progress = Math.min(
-                    100,
-                    Math.max(0, Number(project.progress) || 0)
+                  const status = getProjectStatus(
+                    project.status,
+                    project.progress
                   );
-
-                  const overdue = isOverdue(project);
 
                   return (
                     <TableRow
@@ -505,11 +554,11 @@ export default function AdminProjects({ projects = [] }) {
                               fontWeight: 700,
                             }}
                           >
-                            {(project.leader || "N").charAt(0).toUpperCase()}
+                            {project.leaderName.charAt(0).toUpperCase()}
                           </Avatar>
 
                           <Typography fontSize={12} fontWeight={600}>
-                            {project.leader || "Not assigned"}
+                            {project.leaderName}
                           </Typography>
                         </Stack>
                       </TableCell>
@@ -523,7 +572,7 @@ export default function AdminProjects({ projects = [] }) {
                           />
 
                           <Typography fontSize={12} color="text.secondary">
-                            {getMemberCount(project.members)} Members
+                            {project.memberCount} Members
                           </Typography>
                         </Stack>
                       </TableCell>
@@ -532,7 +581,7 @@ export default function AdminProjects({ projects = [] }) {
                       <TableCell>
                         <Stack spacing={0.4}>
                           <Typography fontSize={12} fontWeight={700}>
-                            {completedTasks} / {getTaskCount(project.tasks)}
+                            {project.completedTasks} / {project.tasks.length}
                           </Typography>
 
                           <Typography fontSize={10} color="text.secondary">
@@ -544,19 +593,13 @@ export default function AdminProjects({ projects = [] }) {
                       {/* Progress */}
                       <TableCell sx={{ minWidth: 150 }}>
                         <Stack spacing={0.7}>
-                          <Stack
-                            direction="row"
-                            justifyContent="space-between"
-                            alignItems="center"
-                          >
-                            <Typography fontSize={12} fontWeight={700}>
-                              {progress}%
-                            </Typography>
-                          </Stack>
+                          <Typography fontSize={12} fontWeight={700}>
+                            {project.progress}%
+                          </Typography>
 
                           <LinearProgress
                             variant="determinate"
-                            value={progress}
+                            value={project.progress}
                             sx={{
                               height: 7,
                               borderRadius: 5,
@@ -564,7 +607,9 @@ export default function AdminProjects({ projects = [] }) {
                               "& .MuiLinearProgress-bar": {
                                 borderRadius: 5,
                                 bgcolor:
-                                  progress === 100 ? "#16A34A" : "#2563EB",
+                                  project.progress === 100
+                                    ? "#16A34A"
+                                    : "#2563EB",
                               },
                             }}
                           />
@@ -582,7 +627,7 @@ export default function AdminProjects({ projects = [] }) {
                             sx={{ fontSize: 10, fontWeight: 700 }}
                           />
 
-                          {overdue && (
+                          {project.overdue && (
                             <Typography
                               fontSize={10}
                               fontWeight={700}
@@ -600,14 +645,18 @@ export default function AdminProjects({ projects = [] }) {
                           <CalendarMonthOutlined
                             fontSize="small"
                             sx={{
-                              color: overdue ? "#DC2626" : "#64748B",
+                              color: project.overdue ? "#DC2626" : "#64748B",
                             }}
                           />
 
                           <Typography
                             fontSize={12}
-                            fontWeight={overdue ? 700 : 500}
-                            color={overdue ? "error.main" : "text.secondary"}
+                            fontWeight={project.overdue ? 700 : 500}
+                            color={
+                              project.overdue
+                                ? "error.main"
+                                : "text.secondary"
+                            }
                           >
                             {formatDate(project.endDate)}
                           </Typography>
@@ -634,16 +683,14 @@ export default function AdminProjects({ projects = [] }) {
         </TableContainer>
       </Paper>
 
-      {/* Footer Information */}
+      {/* Footer */}
       <Stack
         direction="row"
         spacing={1}
         alignItems="center"
         sx={{ mt: 2 }}
       >
-        <AssignmentOutlined
-          sx={{ fontSize: 16, color: "#94A3B8" }}
-        />
+        <AssignmentOutlined sx={{ fontSize: 16, color: "#94A3B8" }} />
 
         <Typography fontSize={11} color="text.secondary">
           Project information is displayed for monitoring purposes.

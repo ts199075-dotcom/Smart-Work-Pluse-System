@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 import {
   Box,
   Typography,
@@ -18,62 +20,9 @@ import {
   ScheduleRounded,
 } from "@mui/icons-material";
 
-import { useState } from "react";
+import { useAppData } from "../../../hooks/useAppData";
 
-// Sample attendance data
-const attendanceData = {
-  2: { status: "present", checkIn: "07:52 AM", checkOut: "05:00 PM", hours: "9h 08m" },
-  3: { status: "present", checkIn: "07:48 AM", checkOut: "05:05 PM", hours: "9h 17m" },
-  4: { status: "late", checkIn: "08:35 AM", checkOut: "05:00 PM", hours: "8h 25m" },
-  5: { status: "present", checkIn: "07:55 AM", checkOut: "05:10 PM", hours: "9h 15m" },
-  6: { status: "present", checkIn: "07:50 AM", checkOut: "05:00 PM", hours: "9h 10m" },
-  9: { status: "absent", checkIn: "--", checkOut: "--", hours: "0h" },
-  10: { status: "present", checkIn: "07:45 AM", checkOut: "05:00 PM", hours: "9h 15m" },
-  11: { status: "late", checkIn: "08:42 AM", checkOut: "05:00 PM", hours: "8h 18m" },
-  12: { status: "present", checkIn: "07:58 AM", checkOut: "05:00 PM", hours: "9h 02m" },
-  13: { status: "present", checkIn: "07:51 AM", checkOut: "05:00 PM", hours: "9h 09m" },
-  16: { status: "present", checkIn: "07:49 AM", checkOut: "05:00 PM", hours: "9h 11m" },
-  17: { status: "absent", checkIn: "--", checkOut: "--", hours: "0h" },
-  18: { status: "late", checkIn: "08:28 AM", checkOut: "05:00 PM", hours: "8h 32m" },
-  19: { status: "present", checkIn: "07:53 AM", checkOut: "05:00 PM", hours: "9h 07m" },
-  20: { status: "present", checkIn: "07:50 AM", checkOut: "05:00 PM", hours: "9h 10m" },
-  23: { status: "present", checkIn: "07:55 AM", checkOut: "05:00 PM", hours: "9h 05m" },
-  24: { status: "late", checkIn: "08:45 AM", checkOut: "05:00 PM", hours: "8h 15m" },
-  25: { status: "present", checkIn: "07:52 AM", checkOut: "05:00 PM", hours: "9h 08m" },
-  26: { status: "present", checkIn: "07:50 AM", checkOut: "05:00 PM", hours: "9h 10m" },
-};
-
-// Summary cards
-const summaryCards = [
-  {
-    title: "Present Days",
-    value: "20",
-    icon: CheckCircleRounded,
-    color: "#16A34A",
-    background: "#DCFCE7",
-  },
-  {
-    title: "Late Days",
-    value: "6",
-    icon: WarningRounded,
-    color: "#D97706",
-    background: "#FEF3C7",
-  },
-  {
-    title: "Absent Days",
-    value: "2",
-    icon: CancelRounded,
-    color: "#DC2626",
-    background: "#FEE2E2",
-  },
-  {
-    title: "Total Hours",
-    value: "168h",
-    icon: AccessTimeRounded,
-    color: "#2563EB",
-    background: "#DBEAFE",
-  },
-];
+const CURRENT_MEMBER_ID = 1;
 
 const statusStyles = {
   present: {
@@ -95,11 +44,23 @@ const statusStyles = {
 
 const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function MemberAttendance() {
-  const [selectedDay, setSelectedDay] = useState(26);
-  const [selectedMonth, setSelectedMonth] = useState("2026-12");
+function formatHours(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
 
-  // Dynamic month information
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+function MemberAttendance() {
+  const { employees, attendance } = useAppData();
+
+  const [selectedMonth, setSelectedMonth] = useState("2026-10");
+  const [selectedDay, setSelectedDay] = useState(26);
+
+  const currentMember = employees.find(
+    (employee) => employee.id === CURRENT_MEMBER_ID
+  );
+
   const [year, month] = selectedMonth.split("-").map(Number);
 
   const monthDate = new Date(year, month - 1, 1);
@@ -111,11 +72,54 @@ function MemberAttendance() {
 
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  const firstDay = monthDate.getDay();
-  const startingOffset = (firstDay + 6) % 7;
+  const startingOffset = (monthDate.getDay() + 6) % 7;
 
-  // Selected attendance record
-  const selectedRecord = attendanceData[selectedDay];
+  // Filter attendance by employee and selected month
+  const monthlyAttendance = useMemo(() => {
+    return attendance.filter(
+      (record) =>
+        record.employeeId === CURRENT_MEMBER_ID &&
+        record.date.startsWith(selectedMonth)
+    );
+  }, [attendance, selectedMonth]);
+
+  // Convert attendance records into a date lookup object
+  const attendanceByDay = useMemo(() => {
+    return monthlyAttendance.reduce((result, record) => {
+      const day = Number(record.date.split("-")[2]);
+      result[day] = record;
+      return result;
+    }, {});
+  }, [monthlyAttendance]);
+
+  // Calculate monthly statistics
+  const summary = useMemo(() => {
+    const presentDays = monthlyAttendance.filter(
+      (record) => record.status === "present"
+    ).length;
+
+    const lateDays = monthlyAttendance.filter(
+      (record) => record.status === "late"
+    ).length;
+
+    const absentDays = monthlyAttendance.filter(
+      (record) => record.status === "absent"
+    ).length;
+
+    const totalMinutes = monthlyAttendance.reduce(
+      (total, record) => total + (record.hours || 0),
+      0
+    );
+
+    return {
+      presentDays,
+      lateDays,
+      absentDays,
+      totalMinutes,
+    };
+  }, [monthlyAttendance]);
+
+  const selectedRecord = attendanceByDay[selectedDay];
 
   // Build calendar days
   const calendarDays = [
@@ -127,8 +131,48 @@ function MemberAttendance() {
     calendarDays.push(null);
   }
 
-  return (
+  const summaryCards = [
+    {
+      title: "Present Days",
+      value: summary.presentDays,
+      icon: CheckCircleRounded,
+      color: "#16A34A",
+      background: "#DCFCE7",
+    },
+    {
+      title: "Late Days",
+      value: summary.lateDays,
+      icon: WarningRounded,
+      color: "#D97706",
+      background: "#FEF3C7",
+    },
+    {
+      title: "Absent Days",
+      value: summary.absentDays,
+      icon: CancelRounded,
+      color: "#DC2626",
+      background: "#FEE2E2",
+    },
+    {
+      title: "Total Hours",
+      value: formatHours(summary.totalMinutes),
+      icon: AccessTimeRounded,
+      color: "#2563EB",
+      background: "#DBEAFE",
+    },
+  ];
 
+  if (!currentMember) {
+    return (
+      <Box p={3}>
+        <Typography color="error">
+          Employee data could not be found.
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
       {/* Page Header */}
       <Box
@@ -140,7 +184,7 @@ function MemberAttendance() {
         mb={3}
       >
         <Box>
-          <Typography variant="h3" mb={0.5}>
+          <Typography variant="h3" mb={0.5} fontWeight={700}>
             My Attendance
           </Typography>
 
@@ -153,24 +197,24 @@ function MemberAttendance() {
           <Select
             value={selectedMonth}
             onChange={(event) => {
-                setSelectedMonth(event.target.value);
-                setSelectedDay(1);
+              setSelectedMonth(event.target.value);
+              setSelectedDay(1);
             }}
             startAdornment={
-                <CalendarMonthRounded
+              <CalendarMonthRounded
                 sx={{ color: "#64748B", mr: 1, fontSize: 20 }}
-                />
+              />
             }
             sx={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "10px",
-                fontSize: 13,
+              backgroundColor: "#FFFFFF",
+              borderRadius: "10px",
+              fontSize: 13,
             }}
-            >
+          >
             <MenuItem value="2026-10">October 2026</MenuItem>
             <MenuItem value="2026-11">November 2026</MenuItem>
             <MenuItem value="2026-12">December 2026</MenuItem>
-            </Select>
+          </Select>
         </FormControl>
       </Box>
 
@@ -289,9 +333,11 @@ function MemberAttendance() {
             }}
           >
             {calendarDays.map((day, index) => {
-              const record = day ? attendanceData[day] : null;
+              const record = day ? attendanceByDay[day] : null;
               const isSelected = day === selectedDay;
-              const style = record ? statusStyles[record.status] : null;
+              const style = record
+                ? statusStyles[record.status]
+                : null;
 
               return (
                 <Box
@@ -394,17 +440,17 @@ function MemberAttendance() {
               {[
                 {
                   label: "Check-in",
-                  value: selectedRecord.checkIn,
+                  value: selectedRecord.checkIn || "--",
                   icon: ScheduleRounded,
                 },
                 {
                   label: "Check-out",
-                  value: selectedRecord.checkOut,
+                  value: selectedRecord.checkOut || "--",
                   icon: AccessTimeRounded,
                 },
                 {
                   label: "Working Hours",
-                  value: selectedRecord.hours,
+                  value: formatHours(selectedRecord.hours || 0),
                   icon: CalendarMonthRounded,
                 },
               ].map((item) => {

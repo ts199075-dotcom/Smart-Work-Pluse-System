@@ -1,136 +1,252 @@
+import { useMemo } from "react";
 import {
   Box,
   Typography,
   Paper,
-  Button,
   Chip,
   LinearProgress,
+  Stack,
+  Avatar,
+  Divider,
 } from "@mui/material";
 
-import { ArrowForwardRounded } from "@mui/icons-material";
+import {
+  FolderRounded,
+  AssignmentRounded,
+  WarningAmberRounded,
+  CheckCircleRounded,
+  AccessTimeRounded,
+  EventAvailableRounded,
+} from "@mui/icons-material";
 
-// Dashboard statistics
-const stats = [
-  {
-    title: "Green cards this month",
-    value: "12",
-    description: "12 of 20 toward next reward",
-    progress: 60,
-    color: "#16A34A",
-  },
-  {
-    title: "Blue cards (net after offset)",
-    value: "0",
-    description: "3 Blue offset by 3 Green · fine at 30",
-    progress: 0,
-    color: "#2563EB",
-  },
-  {
-    title: "Black cards",
-    value: "0",
-    description: "0 of 30 · never cancelled by Green",
-    progress: 0,
-    color: "#111827",
-  },
-  {
-    title: "Leave days used",
-    value: "1 of 3",
-    description: "Free days left this month: 2",
-    progress: 33,
-    color: "#F59E0B",
-  },
-];
+import { useAppData } from "../../../hooks/useAppData";
+import { calculateProjectProgress } from "../../team-leader/projects/projectsData";
 
-// Sample tasks
-const tasks = [
-  {
-    name: "Design leave balance widget",
-    project: "HR Portal Revamp",
-    due: "28 Oct",
-    status: "In progress",
-  },
-  {
-    name: "Review payroll export format",
-    project: "Finance Automation",
-    due: "29 Oct",
-    status: "In review",
-  },
-  {
-    name: "Write attendance API tests",
-    project: "HR Portal Revamp",
-    due: "25 Oct",
-    status: "Overdue",
-  },
-  {
-    name: "Prepare sprint demo notes",
-    project: "Mobile Check-in",
-    due: "02 Nov",
-    status: "To do",
-  },
-  {
-    name: "Update onboarding checklist",
-    project: "People Ops",
-    due: "04 Nov",
-    status: "To do",
-  },
-];
+// Temporary employee until Backend Authentication is ready
+const CURRENT_MEMBER_ID = 1;
 
-// Weekly working hours
-const weeklyHours = [
-  { day: "Mon", hours: 8.6 },
-  { day: "Tue", hours: 9.1 },
-  { day: "Wed", hours: 8.2 },
-  { day: "Thu", hours: 7.9 },
-  { day: "Sun", hours: 4.5 },
-];
-
-// Task status colors
 const statusColors = {
-  "In progress": {
+  "In Progress": {
     bg: "#DBEAFE",
     color: "#1D4ED8",
   },
-  "In review": {
-    bg: "#FEF3C7",
-    color: "#92400E",
+  Completed: {
+    bg: "#DCFCE7",
+    color: "#15803D",
   },
-  Overdue: {
-    bg: "#FEE2E2",
-    color: "#B91C1C",
-  },
-  "To do": {
+  "To Do": {
     bg: "#F1F5F9",
     color: "#475569",
   },
 };
 
-// Reusable section header
-function SectionHeader({ title, action }) {
-  return (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        mb: 2,
-      }}
-    >
-      <Typography variant="h5">{title}</Typography>
+function StatusChip({ status }) {
+  const style = statusColors[status] || statusColors["To Do"];
 
-      {action && (
-        <Button
-          size="small"
-          endIcon={<ArrowForwardRounded />}
-          sx={{ fontSize: 12 }}
-        >
-          {action}
-        </Button>
-      )}
-    </Box>
+  return (
+    <Chip
+      label={status}
+      size="small"
+      sx={{
+        width: "fit-content",
+        fontSize: 10,
+        fontWeight: 600,
+        bgcolor: style.bg,
+        color: style.color,
+      }}
+    />
   );
 }
 
+function SummaryCard({ title, value, description, icon, color, bg }) {
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.5,
+        minWidth: 0,
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: "14px",
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Avatar
+          variant="rounded"
+          sx={{
+            width: 42,
+            height: 42,
+            bgcolor: bg,
+            color,
+            borderRadius: 1.5,
+          }}
+        >
+          {icon}
+        </Avatar>
+
+        <Box minWidth={0}>
+          <Typography fontSize={12} color="text.secondary">
+            {title}
+          </Typography>
+
+          <Typography variant="h4" fontWeight={700}>
+            {value}
+          </Typography>
+
+          <Typography fontSize={11} color="text.secondary">
+            {description}
+          </Typography>
+        </Box>
+      </Stack>
+    </Paper>
+  );
+}
+
+function SectionHeader({ title }) {
+  return (
+    <Typography variant="h5" fontWeight={700} mb={2}>
+      {title}
+    </Typography>
+  );
+}
+
+function isOverdue(task) {
+  if (!task.deadline || task.status === "Completed") return false;
+
+  const deadline = new Date(task.deadline);
+
+  if (Number.isNaN(deadline.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+
+  return deadline < today;
+}
+
+function formatDate(date) {
+  if (!date) return "No deadline";
+
+  const parsedDate = new Date(date);
+
+  if (Number.isNaN(parsedDate.getTime())) return "No deadline";
+
+  return parsedDate.toLocaleDateString("en-US", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function formatHours(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${hours}h ${minutes}m`;
+}
+
 function MemberDashboard() {
+  const { employees, projects, attendance = [] } = useAppData();
+
+  const currentMember = employees.find(
+    (employee) => employee.id === CURRENT_MEMBER_ID
+  );
+
+  const currentMonth = new Date().toISOString().slice(0, 7);
+
+  const memberProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const memberIds = project.memberIds || project.membersIds || [];
+      return memberIds.includes(CURRENT_MEMBER_ID);
+    });
+  }, [projects]);
+
+  const memberTasks = useMemo(() => {
+    return memberProjects.flatMap((project) =>
+      (project.tasks || [])
+        .filter((task) => task.assignedToId === CURRENT_MEMBER_ID)
+        .map((task) => ({
+          ...task,
+          projectId: project.id,
+          projectName: project.name,
+        }))
+    );
+  }, [memberProjects]);
+
+  // Attendance records for the current member
+  const memberAttendance = useMemo(() => {
+   return attendance.filter(
+    (record) =>
+      record.employeeId === CURRENT_MEMBER_ID &&
+      record.date.startsWith(currentMonth)
+  );
+ }, [attendance, currentMonth]);
+
+  const attendanceSummary = useMemo(() => {
+    const present = memberAttendance.filter(
+      (record) => record.status === "present"
+    ).length;
+
+    const late = memberAttendance.filter(
+      (record) => record.status === "late"
+    ).length;
+
+    const absent = memberAttendance.filter(
+      (record) => record.status === "absent"
+    ).length;
+
+    const totalMinutes = memberAttendance.reduce(
+      (total, record) => total + (Number(record.hours) || 0),
+      0
+    );
+
+    return {
+      present,
+      late,
+      absent,
+      totalMinutes,
+    };
+  }, [memberAttendance]);
+
+  const openTasks = memberTasks.filter(
+    (task) => task.status !== "Completed"
+  );
+
+  const completedTasks = memberTasks.filter(
+    (task) => task.status === "Completed"
+  );
+
+  const overdueTasks = memberTasks.filter(isOverdue);
+
+  const activeProjects = memberProjects.filter(
+    (project) => calculateProjectProgress(project.tasks || []) < 100
+  );
+
+  const today = new Date();
+
+  const greeting =
+    today.getHours() < 12
+      ? "Good morning"
+      : today.getHours() < 17
+        ? "Good afternoon"
+        : "Good evening";
+
+  const formattedDate = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  if (!currentMember) {
+    return (
+      <Box p={3}>
+        <Typography color="error">
+          Employee data could not be found.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ width: "100%", minWidth: 0 }}>
       {/* Welcome Section */}
@@ -145,21 +261,24 @@ function MemberDashboard() {
         }}
       >
         <Box>
-          <Typography variant="h3" mb={0.5}>
-            Good evening, Sara
+          <Typography variant="h3" mb={0.5} fontWeight={700}>
+            {greeting}, {currentMember.name.split(" ")[0]}
           </Typography>
 
           <Typography color="text.secondary" fontSize={13}>
-            Monday, 26 October 2026 · Working hours 8:00 AM to 5:00 PM
+            {formattedDate}
           </Typography>
         </Box>
 
-        <Button variant="outlined" size="small">
-          View attendance history
-        </Button>
+        <Chip
+          label={currentMember.position}
+          color="primary"
+          variant="outlined"
+          size="small"
+        />
       </Box>
 
-      {/* Attendance Card */}
+      {/* Attendance Overview */}
       <Paper
         elevation={0}
         sx={{
@@ -170,64 +289,88 @@ function MemberDashboard() {
           mb: 3,
         }}
       >
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={2}
+          mb={1.5}
+        >
+          <Avatar
+            variant="rounded"
+            sx={{
+              bgcolor: "#DBEAFE",
+              color: "#2563EB",
+              borderRadius: 1.5,
+            }}
+          >
+            <EventAvailableRounded />
+          </Avatar>
+
+          <Box>
+            <Typography fontWeight={700}>
+              Attendance Overview
+            </Typography>
+
+            <Typography fontSize={12} color="text.secondary">
+              Your recorded attendance information
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Divider sx={{ mb: 2 }} />
+
         <Box
           sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "repeat(2, minmax(0, 1fr))",
+              md: "repeat(4, minmax(0, 1fr))",
+            },
             gap: 2,
           }}
         >
           <Box>
-            <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
-              <Chip
-                label="Checked in"
-                size="small"
-                sx={{
-                  bgcolor: "#DCFCE7",
-                  color: "#15803D",
-                  fontWeight: 600,
-                }}
-              />
-
-              <Chip
-                label="Green card earned"
-                size="small"
-                sx={{
-                  bgcolor: "#DCFCE7",
-                  color: "#15803D",
-                  fontWeight: 600,
-                }}
-              />
-            </Box>
-
-            <Typography variant="h2" fontWeight={700}>
-              7h 48m
+            <Typography fontSize={12} color="text.secondary">
+              Present Days
             </Typography>
-
-            <Typography color="text.secondary" fontSize={12} mt={1}>
-              Checked in today at 07:52 AM · Check-out available from 5:00 PM
+            <Typography variant="h5" fontWeight={700} color="success.main">
+              {attendanceSummary.present}
             </Typography>
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              flexWrap: "wrap",
-            }}
-          >
-            <Button variant="contained" size="medium">
-              Check out
-            </Button>
+          <Box>
+            <Typography fontSize={12} color="text.secondary">
+              Late Days
+            </Typography>
+            <Typography variant="h5" fontWeight={700} color="warning.main">
+              {attendanceSummary.late}
+            </Typography>
+          </Box>
 
-            <Button variant="outlined" size="medium">
-              Start overtime
-            </Button>
+          <Box>
+            <Typography fontSize={12} color="text.secondary">
+              Absent Days
+            </Typography>
+            <Typography variant="h5" fontWeight={700} color="error.main">
+              {attendanceSummary.absent}
+            </Typography>
+          </Box>
+
+          <Box>
+            <Typography fontSize={12} color="text.secondary">
+              Total Working Hours
+            </Typography>
+            <Typography variant="h5" fontWeight={700}>
+              {formatHours(attendanceSummary.totalMinutes)}
+            </Typography>
           </Box>
         </Box>
+
+        {memberAttendance.length === 0 && (
+          <Typography fontSize={12} color="text.secondary" mt={2}>
+            No attendance records available yet.
+          </Typography>
+        )}
       </Paper>
 
       {/* Statistics Cards */}
@@ -243,49 +386,44 @@ function MemberDashboard() {
           mb: 3,
         }}
       >
-        {stats.map((stat) => (
-          <Paper
-            key={stat.title}
-            elevation={0}
-            sx={{
-              p: 2.5,
-              minWidth: 0,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: "14px",
-            }}
-          >
-            <Typography fontSize={12} color="text.secondary" mb={1}>
-              {stat.title}
-            </Typography>
+        <SummaryCard
+          title="Active Projects"
+          value={activeProjects.length}
+          description="Currently assigned"
+          icon={<FolderRounded />}
+          color="#2563EB"
+          bg="#DBEAFE"
+        />
 
-            <Typography variant="h4" mb={1}>
-              {stat.value}
-            </Typography>
+        <SummaryCard
+          title="Open Tasks"
+          value={openTasks.length}
+          description="Tasks to complete"
+          icon={<AssignmentRounded />}
+          color="#D97706"
+          bg="#FEF3C7"
+        />
 
-            <LinearProgress
-              variant="determinate"
-              value={stat.progress}
-              sx={{
-                height: 5,
-                borderRadius: 5,
-                mb: 1.5,
-                bgcolor: "#F1F5F9",
-                "& .MuiLinearProgress-bar": {
-                  bgcolor: stat.color,
-                  borderRadius: 5,
-                },
-              }}
-            />
+        <SummaryCard
+          title="Completed Tasks"
+          value={completedTasks.length}
+          description="Successfully completed"
+          icon={<CheckCircleRounded />}
+          color="#16A34A"
+          bg="#DCFCE7"
+        />
 
-            <Typography fontSize={11} color="text.secondary">
-              {stat.description}
-            </Typography>
-          </Paper>
-        ))}
+        <SummaryCard
+          title="Overdue Tasks"
+          value={overdueTasks.length}
+          description="Need your attention"
+          icon={<WarningAmberRounded />}
+          color="#DC2626"
+          bg="#FEE2E2"
+        />
       </Box>
 
-      {/* Tasks and Weekly Hours */}
+      {/* Tasks and Projects */}
       <Box
         sx={{
           display: "grid",
@@ -308,17 +446,17 @@ function MemberDashboard() {
             borderRadius: "14px",
           }}
         >
-          <SectionHeader title="My tasks" action="View all" />
+          <SectionHeader title="My Tasks" />
 
           <Box sx={{ width: "100%", overflowX: "auto" }}>
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: "minmax(180px, 2fr) minmax(130px, 1.5fr) minmax(65px, 0.7fr) minmax(90px, 1fr)",
+                gridTemplateColumns:
+                  "minmax(180px, 2fr) minmax(130px, 1.5fr) minmax(75px, 0.8fr) minmax(100px, 1fr)",
                 minWidth: 550,
               }}
             >
-              {/* Table Header */}
               {["TASK", "PROJECT", "DUE", "STATUS"].map((heading) => (
                 <Box
                   key={heading}
@@ -338,86 +476,95 @@ function MemberDashboard() {
                 </Box>
               ))}
 
-              {/* Table Rows */}
-              {tasks.map((task) => (
+              {memberTasks.length === 0 ? (
                 <Box
-                  key={task.name}
                   sx={{
-                    display: "contents",
+                    gridColumn: "1 / -1",
+                    py: 5,
+                    textAlign: "center",
                   }}
                 >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      py: 1.7,
-                      pr: 1,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <Typography fontSize={12} fontWeight={600}>
-                      {task.name}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      py: 1.7,
-                      pr: 1,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <Typography fontSize={11} color="text.secondary">
-                      {task.project}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      py: 1.7,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <Typography fontSize={11} color="text.secondary">
-                      {task.due}
-                    </Typography>
-                  </Box>
-
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      py: 1.7,
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                    }}
-                  >
-                    <Chip
-                      label={task.status}
-                      size="small"
-                      sx={{
-                        width: "fit-content",
-                        fontSize: 10,
-                        fontWeight: 600,
-                        bgcolor: statusColors[task.status].bg,
-                        color: statusColors[task.status].color,
-                      }}
-                    />
-                  </Box>
+                  <Typography fontSize={13} color="text.secondary">
+                    No tasks have been assigned to you yet.
+                  </Typography>
                 </Box>
-              ))}
+              ) : (
+                memberTasks.slice(0, 5).map((task) => (
+                  <Box key={task.id} sx={{ display: "contents" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        py: 1.7,
+                        pr: 1,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Typography fontSize={12} fontWeight={600}>
+                        {task.title}
+                      </Typography>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        py: 1.7,
+                        pr: 1,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Typography fontSize={11} color="text.secondary">
+                        {task.projectName}
+                      </Typography>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        py: 1.7,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Typography fontSize={11} color="text.secondary">
+                        {formatDate(task.deadline)}
+                      </Typography>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        py: 1.7,
+                        borderBottom: "1px solid",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <StatusChip status={task.status} />
+                    </Box>
+                  </Box>
+                ))
+              )}
             </Box>
           </Box>
+
+          {memberTasks.length > 5 && (
+            <Typography
+              fontSize={11}
+              color="text.secondary"
+              textAlign="center"
+              mt={2}
+            >
+              Showing 5 of {memberTasks.length} assigned tasks.
+            </Typography>
+          )}
         </Paper>
 
-        {/* Weekly Hours */}
+        {/* Project Progress */}
         <Paper
           elevation={0}
           sx={{
@@ -428,97 +575,89 @@ function MemberDashboard() {
             borderRadius: "14px",
           }}
         >
-          <SectionHeader title="Hours this week" />
+          <SectionHeader title="My Projects" />
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-              alignItems: "end",
-              height: 150,
-              gap: 1,
-              mt: 2,
-            }}
-          >
-            {weeklyHours.map((item) => (
-              <Box
-                key={item.day}
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "flex-end",
-                  height: "100%",
-                  minWidth: 0,
-                  gap: 1,
-                }}
-              >
-                <Typography fontSize={10} fontWeight={600}>
-                  {item.hours}h
-                </Typography>
+          {memberProjects.length === 0 ? (
+            <Typography fontSize={13} color="text.secondary">
+              You are not assigned to any projects yet.
+            </Typography>
+          ) : (
+            <Stack spacing={3}>
+              {memberProjects.map((project) => {
+                const progress = calculateProjectProgress(
+                  project.tasks || []
+                );
 
-                <Box
-                  sx={{
-                    width: "100%",
-                    maxWidth: 38,
-                    height: `${(item.hours / 10) * 100}px`,
-                    bgcolor: "#2563EB",
-                    borderRadius: "5px 5px 0 0",
-                  }}
-                />
+                return (
+                  <Box key={project.id}>
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                      mb={1}
+                      spacing={1}
+                    >
+                      <Typography
+                        fontSize={12}
+                        fontWeight={600}
+                        sx={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {project.name}
+                      </Typography>
 
-                <Typography fontSize={10} color="text.secondary">
-                  {item.day}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
+                      <Typography fontSize={12} fontWeight={700}>
+                        {progress}%
+                      </Typography>
+                    </Stack>
 
-          {/* Overtime and Payslip */}
-          <Box
-            sx={{
-              mt: 3,
-              pt: 2,
-              borderTop: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Box
+                    <LinearProgress
+                      variant="determinate"
+                      value={progress}
+                      sx={{
+                        height: 7,
+                        borderRadius: 5,
+                        bgcolor: "#E2E8F0",
+                        "& .MuiLinearProgress-bar": {
+                          bgcolor: "#2563EB",
+                          borderRadius: 5,
+                        },
+                      }}
+                    />
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
+
+          <Divider sx={{ my: 2.5 }} />
+
+          {/* Working Hours */}
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar
+              variant="rounded"
               sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 1,
-                mb: 1,
+                bgcolor: "#FEF3C7",
+                color: "#D97706",
+                borderRadius: 1.5,
               }}
             >
-              <Typography fontSize={12} color="text.secondary">
-                Overtime requests
+              <AccessTimeRounded />
+            </Avatar>
+
+            <Box>
+              <Typography fontSize={12} fontWeight={700}>
+                Total Working Hours
               </Typography>
 
-              <Typography fontSize={12} fontWeight={700}>
-                1 pending
+              <Typography fontSize={13} color="text.secondary">
+                {formatHours(attendanceSummary.totalMinutes)} recorded
               </Typography>
             </Box>
-
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 1,
-                flexWrap: "wrap",
-              }}
-            >
-              <Typography fontSize={12} color="text.secondary">
-                Last payslip (Sep 2026)
-              </Typography>
-
-              <Typography fontSize={12} fontWeight={700}>
-                EGP 14,250 · Paid
-              </Typography>
-            </Box>
-          </Box>
+          </Stack>
         </Paper>
       </Box>
     </Box>

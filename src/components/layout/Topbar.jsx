@@ -35,9 +35,9 @@ const ROLE_LABELS = {
 };
 
 function Topbar({
-  userName = "Sara Ahmed",
+  userName = "User",
   role = "member",
-  userInitials = "SA",
+  userInitials = "U",
   onMenuClick,
 }) {
   const location = useLocation();

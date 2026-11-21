@@ -24,6 +24,7 @@ import {
   SettingsRounded,
   AdminPanelSettingsRounded,
   EventNoteRounded,
+  PersonRounded,
   SecurityRounded,
 } from "@mui/icons-material";
 
@@ -39,6 +40,8 @@ const iconMap = {
   "My Payslip": PaymentsRounded,
   "Fines & Rewards": WorkspacePremiumRounded,
   "Projects & Tasks": FolderRounded,
+  "My Profile": PersonRounded,
+  Settings: SettingsRounded,
   Notifications: NotificationsRounded,
   Projects: FolderRounded,
   Teams: GroupsRounded,

@@ -34,24 +34,7 @@ import {
   Line,
 } from "recharts";
 
-// Temporary data until HR data is shared between modules.
-const workforceData = [
-  { department: "Development", employees: 48 },
-  { department: "Marketing", employees: 26 },
-  { department: "HR", employees: 12 },
-  { department: "Finance", employees: 20 },
-  { department: "Operations", employees: 50 },
-];
-
-const attendanceData = [
-  { day: "Sat", rate: 94 },
-  { day: "Sun", rate: 96 },
-  { day: "Mon", rate: 91 },
-  { day: "Tue", rate: 95 },
-  { day: "Wed", rate: 93 },
-  { day: "Thu", rate: 97 },
-  { day: "Fri", rate: 92 },
-];
+import { useAppData } from "../../../hooks/useAppData";
 
 const STATUS_COLORS = {
   Completed: "#16A34A",
@@ -64,10 +47,21 @@ const STATUS_COLORS = {
 const normalizeStatus = (status = "") => {
   const value = String(status).toLowerCase().trim();
 
-  if (value === "completed" || value === "done") return "Completed";
-  if (value === "in progress" || value === "in-progress") return "In Progress";
-  if (value === "planning") return "Planning";
-  if (value === "on hold" || value === "on-hold") return "On Hold";
+  if (value === "completed" || value === "done") {
+    return "Completed";
+  }
+
+  if (value === "in progress" || value === "in-progress") {
+    return "In Progress";
+  }
+
+  if (value === "planning") {
+    return "Planning";
+  }
+
+  if (value === "on hold" || value === "on-hold") {
+    return "On Hold";
+  }
 
   return "Other";
 };
@@ -75,13 +69,25 @@ const normalizeStatus = (status = "") => {
 const normalizeTaskStatus = (status = "") => {
   const value = String(status).toLowerCase().trim();
 
-  if (value === "completed" || value === "done") return "Completed";
+  if (value === "completed" || value === "done") {
+    return "Completed";
+  }
 
   if (value === "in progress" || value === "in-progress") {
     return "In Progress";
   }
 
   return "Pending";
+};
+
+const calculateProgress = (tasks = []) => {
+  if (!tasks.length) return 0;
+
+  const completed = tasks.filter(
+    (task) => normalizeTaskStatus(task.status) === "Completed"
+  ).length;
+
+  return Math.round((completed / tasks.length) * 100);
 };
 
 // Reusable statistic card
@@ -224,10 +230,14 @@ const EmptyState = ({ message }) => (
   </Box>
 );
 
-const CompanyAnalytics = ({ projects = [] }) => {
-  const analytics = useMemo(() => {
-    const safeProjects = Array.isArray(projects) ? projects : [];
+const CompanyAnalytics = () => {
+  const { projects, employees, attendance } = useAppData();
 
+  const safeProjects = Array.isArray(projects) ? projects : [];
+  const safeEmployees = Array.isArray(employees) ? employees : [];
+  const safeAttendance = Array.isArray(attendance) ? attendance : [];
+
+  const analytics = useMemo(() => {
     const projectStatuses = {
       Completed: 0,
       "In Progress": 0,
@@ -241,11 +251,27 @@ const CompanyAnalytics = ({ projects = [] }) => {
     let inProgressTasks = 0;
     let pendingTasks = 0;
 
+    const projectPerformanceData = [];
+
     safeProjects.forEach((project) => {
-      const status = normalizeStatus(project.status);
+      const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+
+      const progress = calculateProgress(tasks);
+
+      const status =
+        progress === 100
+          ? "Completed"
+          : normalizeStatus(project.status);
+
       projectStatuses[status]++;
 
-      const tasks = Array.isArray(project.tasks) ? project.tasks : [];
+      projectPerformanceData.push({
+        name:
+          project.name?.length > 13
+            ? `${project.name.slice(0, 13)}...`
+            : project.name || "Untitled",
+        progress,
+      });
 
       tasks.forEach((task) => {
         totalTasks++;
@@ -262,9 +288,8 @@ const CompanyAnalytics = ({ projects = [] }) => {
       });
     });
 
-    const totalProgress = safeProjects.reduce(
-      (sum, project) =>
-        sum + Math.min(100, Math.max(0, Number(project.progress) || 0)),
+    const totalProgress = projectPerformanceData.reduce(
+      (sum, project) => sum + project.progress,
       0
     );
 
@@ -280,13 +305,9 @@ const CompanyAnalytics = ({ projects = [] }) => {
         color: STATUS_COLORS[name],
       }));
 
-    const projectPerformanceData = safeProjects.map((project) => ({
-      name:
-        project.name?.length > 13
-          ? `${project.name.slice(0, 13)}...`
-          : project.name || "Untitled",
-      progress: Math.min(100, Math.max(0, Number(project.progress) || 0)),
-    }));
+    const taskCompletionRate = totalTasks
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
 
     return {
       totalProjects: safeProjects.length,
@@ -296,23 +317,97 @@ const CompanyAnalytics = ({ projects = [] }) => {
       completedTasks,
       inProgressTasks,
       pendingTasks,
-      taskCompletionRate: totalTasks
-        ? Math.round((completedTasks / totalTasks) * 100)
-        : 0,
+      taskCompletionRate,
       projectStatusData,
       projectPerformanceData,
     };
-  }, [projects]);
+  }, [safeProjects]);
 
-  const totalEmployees = workforceData.reduce(
-    (sum, item) => sum + item.employees,
-    0
-  );
+  // Workforce distribution
+  const workforceData = useMemo(() => {
+    const departments = {};
 
-  const averageAttendance = Math.round(
-    attendanceData.reduce((sum, item) => sum + item.rate, 0) /
-      attendanceData.length
-  );
+    safeEmployees.forEach((employee) => {
+      const department = employee.department?.trim() || "Unassigned";
+
+      departments[department] = (departments[department] || 0) + 1;
+    });
+
+    return Object.entries(departments)
+      .map(([department, employeesCount]) => ({
+        department,
+        employees: employeesCount,
+      }))
+      .sort((a, b) => b.employees - a.employees);
+  }, [safeEmployees]);
+
+  const totalEmployees = safeEmployees.length;
+
+  // Attendance analytics
+  const attendanceAnalytics = useMemo(() => {
+    const validRecords = safeAttendance.filter(
+      (record) =>
+        record.date &&
+        ["present", "late", "absent"].includes(
+          record.status?.toLowerCase()
+        )
+    );
+
+    const totalRecords = validRecords.length;
+
+    const presentRecords = validRecords.filter((record) =>
+      ["present", "late"].includes(record.status.toLowerCase())
+    );
+
+    const presentCount = presentRecords.length;
+
+    const averageAttendance = totalRecords
+      ? Math.round((presentCount / totalRecords) * 100)
+      : 0;
+
+    // Group attendance by recorded date.
+    const attendanceByDate = {};
+
+    validRecords.forEach((record) => {
+      const date = record.date;
+
+      if (!attendanceByDate[date]) {
+        attendanceByDate[date] = {
+          total: 0,
+          present: 0,
+        };
+      }
+
+      attendanceByDate[date].total++;
+
+      if (["present", "late"].includes(record.status.toLowerCase())) {
+        attendanceByDate[date].present++;
+      }
+    });
+
+    // Latest 7 dates that actually have attendance records.
+    const attendanceTrend = Object.entries(attendanceByDate)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .slice(-7)
+      .map(([date, data]) => ({
+        day: new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
+          weekday: "short",
+          day: "numeric",
+        }),
+        rate: Math.round((data.present / data.total) * 100),
+        date,
+      }));
+
+    return {
+      totalRecords,
+      presentCount,
+      absentCount: validRecords.filter(
+        (record) => record.status.toLowerCase() === "absent"
+      ).length,
+      averageAttendance,
+      attendanceTrend,
+    };
+  }, [safeAttendance]);
 
   const taskStatusData = [
     { name: "Completed", value: analytics.completedTasks },
@@ -431,7 +526,7 @@ const CompanyAnalytics = ({ projects = [] }) => {
         <StatCard
           title="Total Employees"
           value={totalEmployees}
-          subtitle="Temporary sample data"
+          subtitle="Registered company employees"
           icon={<GroupsOutlined />}
           color="#D97706"
         />
@@ -495,17 +590,17 @@ const CompanyAnalytics = ({ projects = [] }) => {
         </Stack>
       </Paper>
 
-      {/* All Analytics Charts */}
+      {/* Analytics Charts */}
       <SectionHeading
         title="Company Insights"
         subtitle="A complete overview of projects, tasks, workforce and attendance"
       />
 
       <Box sx={chartGridStyles}>
-        {/* 1. Projects by Status */}
+        {/* Projects by Status */}
         <ChartCard
           title="Projects by Status"
-          subtitle="Distribution based on project status"
+          subtitle="Distribution based on project progress and status"
         >
           {analytics.projectStatusData.length ? (
             <ResponsiveContainer width="100%" height="100%">
@@ -539,7 +634,7 @@ const CompanyAnalytics = ({ projects = [] }) => {
           )}
         </ChartCard>
 
-        {/* 2. Project Performance */}
+        {/* Project Performance */}
         <ChartCard
           title="Project Performance"
           subtitle="Completion percentage for each project"
@@ -598,7 +693,7 @@ const CompanyAnalytics = ({ projects = [] }) => {
           )}
         </ChartCard>
 
-        {/* 3. Tasks Overview */}
+        {/* Tasks Overview */}
         <ChartCard
           title="Tasks Overview"
           subtitle="Current task status across all projects"
@@ -655,115 +750,126 @@ const CompanyAnalytics = ({ projects = [] }) => {
           )}
         </ChartCard>
 
-        {/* 4. Workforce Distribution */}
+        {/* Workforce Distribution */}
         <ChartCard
           title="Workforce Distribution"
           subtitle="Employees across company departments"
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={workforceData}
-              layout="vertical"
-              margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={false}
-                stroke="#E8EDF4"
-              />
+          {workforceData.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={workforceData}
+                layout="vertical"
+                margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  horizontal={false}
+                  stroke="#E8EDF4"
+                />
 
-              <XAxis
-                type="number"
-                allowDecimals={false}
-                tick={{ fontSize: 9, fill: "#94A3B8" }}
-                axisLine={false}
-                tickLine={false}
-              />
+                <XAxis
+                  type="number"
+                  allowDecimals={false}
+                  tick={{ fontSize: 9, fill: "#94A3B8" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-              <YAxis
-                type="category"
-                dataKey="department"
-                width={82}
-                tick={{ fontSize: 9, fill: "#64748B" }}
-                axisLine={false}
-                tickLine={false}
-              />
+                <YAxis
+                  type="category"
+                  dataKey="department"
+                  width={82}
+                  tick={{ fontSize: 9, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-              <Tooltip />
+                <Tooltip />
 
-              <Bar
-                dataKey="employees"
-                name="Employees"
-                fill="#7C3AED"
-                radius={[0, 5, 5, 0]}
-                barSize={17}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+                <Bar
+                  dataKey="employees"
+                  name="Employees"
+                  fill="#7C3AED"
+                  radius={[0, 5, 5, 0]}
+                  barSize={17}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState message="No employee data available yet." />
+          )}
         </ChartCard>
 
-        {/* 5. Attendance Trend */}
+        {/* Attendance Trend */}
         <ChartCard
           title="Attendance Trend"
-          subtitle="Daily attendance rate (sample data)"
+          subtitle="Latest 7 recorded attendance dates"
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={attendanceData}
-              margin={{ top: 10, right: 5, left: -20, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                vertical={false}
-                stroke="#E8EDF4"
-              />
+          {attendanceAnalytics.attendanceTrend.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={attendanceAnalytics.attendanceTrend}
+                margin={{ top: 10, right: 5, left: -20, bottom: 5 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#E8EDF4"
+                />
 
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 10, fill: "#64748B" }}
-                axisLine={false}
-                tickLine={false}
-              />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 10, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
 
-              <YAxis
-                domain={[80, 100]}
-                tick={{ fontSize: 9, fill: "#94A3B8" }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value) => `${value}%`}
-                width={35}
-              />
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: 9, fill: "#94A3B8" }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value) => `${value}%`}
+                  width={35}
+                />
 
-              <Tooltip
-                formatter={(value) => [`${value}%`, "Attendance"]}
-                contentStyle={{
-                  borderRadius: 10,
-                  border: "1px solid #E8EDF4",
-                  fontSize: 11,
-                }}
-              />
+                <Tooltip
+                  formatter={(value) => [`${value}%`, "Attendance"]}
+                  labelFormatter={(label, payload) =>
+                    payload?.[0]?.payload?.date || label
+                  }
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: "1px solid #E8EDF4",
+                    fontSize: 11,
+                  }}
+                />
 
-              <Line
-                type="monotone"
-                dataKey="rate"
-                stroke="#16A34A"
-                strokeWidth={3}
-                dot={{
-                  r: 3,
-                  fill: "#16A34A",
-                  strokeWidth: 2,
-                  stroke: "#FFFFFF",
-                }}
-                activeDot={{ r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+                <Line
+                  type="monotone"
+                  dataKey="rate"
+                  stroke="#16A34A"
+                  strokeWidth={3}
+                  dot={{
+                    r: 3,
+                    fill: "#16A34A",
+                    strokeWidth: 2,
+                    stroke: "#FFFFFF",
+                  }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState message="No attendance records available yet." />
+          )}
         </ChartCard>
 
-        {/* 6. Average Attendance */}
+        {/* Average Attendance */}
         <ChartCard
           title="Average Attendance"
-          subtitle="Overall daily attendance average"
+          subtitle="Based on recorded employee attendance"
         >
           <Stack
             alignItems="center"
@@ -794,16 +900,20 @@ const CompanyAnalytics = ({ projects = [] }) => {
                 lineHeight: 1.2,
               }}
             >
-              {averageAttendance}%
+              {attendanceAnalytics.averageAttendance}%
             </Typography>
 
             <Chip
-              label="Sample Data"
+              label={
+                attendanceAnalytics.totalRecords
+                  ? `${attendanceAnalytics.presentCount} attended / ${attendanceAnalytics.totalRecords} records`
+                  : "No Attendance Data"
+              }
               size="small"
               sx={{
                 mt: 1.5,
-                backgroundColor: "#FFF7ED",
-                color: "#C2410C",
+                backgroundColor: "#F0FDF4",
+                color: "#15803D",
                 fontWeight: 600,
                 fontSize: 10,
               }}
@@ -814,8 +924,8 @@ const CompanyAnalytics = ({ projects = [] }) => {
               fontSize={10}
               sx={{ mt: 1.5, maxWidth: 230, lineHeight: 1.6 }}
             >
-              Attendance metrics will be connected to the HR module when
-              shared attendance data becomes available.
+              Present and late records are counted as attendance.
+              Missing records are not automatically counted as absences.
             </Typography>
           </Stack>
         </ChartCard>
@@ -833,9 +943,9 @@ const CompanyAnalytics = ({ projects = [] }) => {
         }}
       >
         <Typography fontSize={12} color="#1E40AF" lineHeight={1.7}>
-          <strong>Data information:</strong> Project and task analytics use
-          shared project data. Workforce and attendance charts currently use
-          temporary sample data and will be connected to the HR module later.
+          <strong>Data information:</strong> All analytics are calculated
+          from shared employees, projects, tasks, and attendance records.
+          Figures update automatically when shared data changes.
         </Typography>
       </Paper>
     </Box>

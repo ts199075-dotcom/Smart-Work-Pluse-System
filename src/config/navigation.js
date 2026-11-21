@@ -13,6 +13,8 @@ export const navigationConfig = {
     { label: "My Payslip", path: "/payslip" },
     { label: "Fines & Rewards", path: "/fines-rewards" },
     { label: "Projects & Tasks", path: "/projects" },
+    { label: "My Profile", path: "/profile" },
+    { label: "Settings", path: "/member-settings" },
     { label: "Notifications", path: "/notifications" },
   ],
 

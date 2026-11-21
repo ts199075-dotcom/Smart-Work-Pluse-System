@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 
 import {
@@ -20,7 +19,9 @@ import {
   IconButton,
   InputAdornment,
   Divider,
-  Menu,
+  Snackbar,
+  Alert,
+  Tooltip,
 } from "@mui/material";
 
 import {
@@ -28,86 +29,21 @@ import {
   SearchRounded,
   AssignmentOutlined,
   CalendarTodayOutlined,
-  MoreHorizRounded,
-  CloseRounded,
-  VisibilityOutlined,
-  EditOutlined,
+  EditRounded,
   DeleteOutlineRounded,
+  CloseRounded,
 } from "@mui/icons-material";
 
-const initialTasks = [
-  {
-    id: 1,
-    title: "Design Homepage UI",
-    project: "Website Redesign",
-    assignedTo: "Ahmed Mohamed",
-    initials: "AM",
-    status: "In Progress",
-    priority: "High",
-    deadline: "2026-11-25",
-    progress: 70,
-  },
-  {
-    id: 2,
-    title: "Develop Login API",
-    project: "Mobile Application",
-    assignedTo: "Mohamed Hassan",
-    initials: "MH",
-    status: "To Do",
-    priority: "High",
-    deadline: "2026-11-28",
-    progress: 0,
-  },
-  {
-    id: 3,
-    title: "Create Dashboard Layout",
-    project: "Internal Dashboard",
-    assignedTo: "Sara Ali",
-    initials: "SA",
-    status: "Completed",
-    priority: "Medium",
-    deadline: "2026-11-15",
-    progress: 100,
-  },
-  {
-    id: 4,
-    title: "Fix Attendance Bugs",
-    project: "Attendance System",
-    assignedTo: "Omar Khaled",
-    initials: "OK",
-    status: "In Progress",
-    priority: "Critical",
-    deadline: "2026-11-22",
-    progress: 45,
-  },
-  {
-    id: 5,
-    title: "Prepare Database Structure",
-    project: "HR System",
-    assignedTo: "Mona Ahmed",
-    initials: "MA",
-    status: "To Do",
-    priority: "Low",
-    deadline: "2026-11-30",
-    progress: 0,
-  },
-];
-
-const teamMembers = [
-  "Ahmed Mohamed",
-  "Mohamed Hassan",
-  "Sara Ali",
-  "Omar Khaled",
-  "Mona Ahmed",
-];
+import { useAppData } from "../../../hooks/useAppData";
 
 const statusOptions = ["To Do", "In Progress", "Completed"];
 const priorityOptions = ["Low", "Medium", "High", "Critical"];
 
 const emptyTask = {
   title: "",
-  project: "",
-  assignedTo: "",
+  description: "",
+  projectId: "",
+  assignedToId: "",
   status: "To Do",
   priority: "Medium",
   deadline: "",
@@ -137,35 +73,38 @@ function getPriorityColor(priority) {
   }
 }
 
-function getInitials(name) {
+function getInitials(name = "") {
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map((part) => part[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
 }
 
-function getProgressByStatus(status, previousProgress = 0, previousStatus = "") {
-  if (status === "Completed") return 100;
-  if (status === "To Do") return 0;
-
-  if (
-    previousStatus === "Completed" ||
-    previousProgress <= 0 ||
-    previousProgress >= 100
-  ) {
-    return 30;
+function getTaskProgress(status) {
+  switch (status) {
+    case "Completed":
+      return 100;
+    case "In Progress":
+      return 50;
+    default:
+      return 0;
   }
-
-  return previousProgress;
 }
 
 function TaskCard({
   task,
+  project,
+  assignedEmployee,
   onStatusChange,
-  onMenuOpen,
+  onEdit,
+  onDelete,
 }) {
+  const progress = getTaskProgress(task.status);
+
   return (
     <Card
       elevation={0}
@@ -184,14 +123,12 @@ function TaskCard({
       <CardContent sx={{ p: 2.5 }}>
         <Stack
           direction="row"
-          sx={{
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            mb: 2,
-          }}
+          justifyContent="space-between"
+          alignItems="flex-start"
+          mb={2}
         >
           <Chip
-            label={task.project}
+            label={project?.name || "Unknown Project"}
             size="small"
             sx={{
               backgroundColor: "#EFF6FF",
@@ -201,17 +138,38 @@ function TaskCard({
             }}
           />
 
-          <IconButton
-            size="small"
-            onClick={(event) => onMenuOpen(event, task)}
-          >
-            <MoreHorizRounded />
-          </IconButton>
+          <Stack direction="row" spacing={0}>
+            <Tooltip title="Edit Task">
+              <IconButton size="small" onClick={() => onEdit(task, project)}>
+                <EditRounded fontSize="small" />
+              </IconButton>
+            </Tooltip>
+
+            <Tooltip title="Delete Task">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => onDelete(project.id, task.id)}
+              >
+                <DeleteOutlineRounded fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         </Stack>
 
         <Typography fontSize={16} fontWeight={700} mb={1}>
           {task.title}
         </Typography>
+
+        {task.description && (
+          <Typography
+            fontSize={13}
+            color="text.secondary"
+            sx={{ mb: 2 }}
+          >
+            {task.description}
+          </Typography>
+        )}
 
         <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
           <Chip
@@ -222,7 +180,7 @@ function TaskCard({
           />
 
           <Chip
-            label={task.priority}
+            label={task.priority || "Medium"}
             color={getPriorityColor(task.priority)}
             size="small"
           />
@@ -231,20 +189,21 @@ function TaskCard({
         <Box sx={{ mb: 2 }}>
           <Stack
             direction="row"
-            sx={{ justifyContent: "space-between", mb: 1 }}
+            justifyContent="space-between"
+            mb={1}
           >
             <Typography fontSize={12} color="text.secondary">
               Progress
             </Typography>
 
             <Typography fontSize={12} fontWeight={600}>
-              {task.progress}%
+              {progress}%
             </Typography>
           </Stack>
 
           <LinearProgress
             variant="determinate"
-            value={task.progress}
+            value={progress}
             sx={{
               height: 7,
               borderRadius: 5,
@@ -262,16 +221,15 @@ function TaskCard({
 
         <Stack
           direction="row"
-          sx={{
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 1,
-          }}
+          justifyContent="space-between"
+          alignItems="center"
+          gap={1}
         >
           <Stack
             direction="row"
             spacing={1}
-            sx={{ alignItems: "center", minWidth: 0 }}
+            alignItems="center"
+            sx={{ minWidth: 0 }}
           >
             <Avatar
               sx={{
@@ -282,12 +240,12 @@ function TaskCard({
                 color: "#17365D",
               }}
             >
-              {task.initials}
+              {getInitials(assignedEmployee?.name || "Unassigned")}
             </Avatar>
 
             <Box sx={{ minWidth: 0 }}>
               <Typography fontSize={12} fontWeight={600} noWrap>
-                {task.assignedTo}
+                {assignedEmployee?.name || "Unassigned"}
               </Typography>
 
               <Typography fontSize={11} color="text.secondary">
@@ -299,14 +257,15 @@ function TaskCard({
           <Stack
             direction="row"
             spacing={0.5}
-            sx={{ alignItems: "center", flexShrink: 0 }}
+            alignItems="center"
+            sx={{ flexShrink: 0 }}
           >
             <CalendarTodayOutlined
               sx={{ fontSize: 14, color: "text.secondary" }}
             />
 
             <Typography fontSize={11} color="text.secondary">
-              {task.deadline}
+              {task.deadline || "No deadline"}
             </Typography>
           </Stack>
         </Stack>
@@ -318,7 +277,7 @@ function TaskCard({
           label="Update Status"
           value={task.status}
           onChange={(event) =>
-            onStatusChange(task.id, event.target.value)
+            onStatusChange(project.id, task.id, event.target.value)
           }
           sx={{ mt: 2 }}
         >
@@ -333,8 +292,8 @@ function TaskCard({
   );
 }
 
-function TeamLeaderTasks() {
-  const [tasks, setTasks] = useState(initialTasks);
+function TeamLeaderTasks({ currentTeamLeader = "Sara Ahmed" }) {
+  const { projects, setProjects, employees } = useAppData();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -342,21 +301,49 @@ function TeamLeaderTasks() {
 
   const [openDialog, setOpenDialog] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [newTask, setNewTask] = useState(emptyTask);
 
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
-  const [menuAnchor, setMenuAnchor] = useState(null);
-  const [menuTask, setMenuTask] = useState(null);
+  const currentLeader = employees.find(
+    (employee) => employee.name === currentTeamLeader
+  );
 
-  const [formTask, setFormTask] = useState(emptyTask);
+  const leaderProjects = useMemo(() => {
+    if (!currentLeader) return [];
+
+    return projects.filter(
+      (project) => project.leaderId === currentLeader.id
+    );
+  }, [projects, currentLeader]);
+
+  const allTasks = useMemo(() => {
+    return leaderProjects.flatMap((project) =>
+      (project.tasks || []).map((task) => ({
+        ...task,
+        projectId: project.id,
+        projectName: project.name,
+        assignedEmployee: employees.find(
+          (employee) => employee.id === task.assignedToId
+        ),
+      }))
+    );
+  }, [leaderProjects, employees]);
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter((task) => {
+    return allTasks.filter((task) => {
+      const searchTerm = search.toLowerCase();
+
       const matchesSearch =
-        task.title.toLowerCase().includes(search.toLowerCase()) ||
-        task.project.toLowerCase().includes(search.toLowerCase()) ||
-        task.assignedTo.toLowerCase().includes(search.toLowerCase());
+        (task.title || "").toLowerCase().includes(searchTerm) ||
+        (task.projectName || "").toLowerCase().includes(searchTerm) ||
+        (task.assignedEmployee?.name || "")
+          .toLowerCase()
+          .includes(searchTerm);
 
       const matchesStatus =
         statusFilter === "All" || task.status === statusFilter;
@@ -366,153 +353,256 @@ function TeamLeaderTasks() {
 
       return matchesSearch && matchesStatus && matchesPriority;
     });
-  }, [tasks, search, statusFilter, priorityFilter]);
+  }, [allTasks, search, statusFilter, priorityFilter]);
 
-  const totalTasks = tasks.length;
+  const totalTasks = allTasks.length;
 
-  const completedTasks = tasks.filter(
+  const completedTasks = allTasks.filter(
     (task) => task.status === "Completed"
   ).length;
 
-  const inProgressTasks = tasks.filter(
+  const inProgressTasks = allTasks.filter(
     (task) => task.status === "In Progress"
   ).length;
 
-  const todoTasks = tasks.filter(
+  const todoTasks = allTasks.filter(
     (task) => task.status === "To Do"
   ).length;
 
-  const handleStatusChange = (taskId, newStatus) => {
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              status: newStatus,
-              progress: getProgressByStatus(
-                newStatus,
-                task.progress,
-                task.status
-              ),
-            }
-          : task
-      )
-    );
+  const selectedProject = projects.find(
+    (project) => String(project.id) === String(newTask.projectId)
+  );
+
+  const projectMembers = selectedProject
+    ? (selectedProject.memberIds || selectedProject.membersIds || [])
+        .map((memberId) =>
+          employees.find((employee) => employee.id === memberId)
+        )
+        .filter(
+          (employee) => employee && employee.status === "Active"
+        )
+    : [];
+
+  const showMessage = (message, severity = "success") => {
+    setSnackbar({
+      open: true,
+      message,
+      severity,
+    });
   };
 
-  const handleMenuOpen = (event, task) => {
-    setMenuAnchor(event.currentTarget);
-    setMenuTask(task);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-    setMenuTask(null);
-  };
-
-  const handleCreateOpen = () => {
+  const handleOpenCreateDialog = () => {
     setEditingTask(null);
-    setFormTask(emptyTask);
-    setOpenDialog(true);
-  };
 
-  const handleEditOpen = () => {
-    if (!menuTask) return;
-
-    setEditingTask(menuTask);
-
-    setFormTask({
-      title: menuTask.title,
-      project: menuTask.project,
-      assignedTo: menuTask.assignedTo,
-      status: menuTask.status,
-      priority: menuTask.priority,
-      deadline: menuTask.deadline,
+    setNewTask({
+      ...emptyTask,
+      projectId: leaderProjects[0]
+        ? String(leaderProjects[0].id)
+        : "",
     });
 
-    handleMenuClose();
     setOpenDialog(true);
   };
 
-  const handleSaveTask = () => {
-    if (
-      !formTask.title.trim() ||
-      !formTask.project.trim() ||
-      !formTask.assignedTo ||
-      !formTask.deadline
-    ) {
-      return;
-    }
+  const handleOpenEditDialog = (task, project) => {
+    setEditingTask({
+      projectId: project.id,
+      taskId: task.id,
+    });
 
-    if (editingTask) {
-      setTasks((previousTasks) =>
-        previousTasks.map((task) => {
-          if (task.id !== editingTask.id) return task;
+    setNewTask({
+      title: task.title || "",
+      description: task.description || "",
+      projectId: String(project.id),
+      assignedToId: task.assignedToId
+        ? String(task.assignedToId)
+        : "",
+      status: task.status || "To Do",
+      priority: task.priority || "Medium",
+      deadline: task.deadline || "",
+    });
 
-          return {
-            ...task,
-            ...formTask,
-            title: formTask.title.trim(),
-            project: formTask.project.trim(),
-            initials: getInitials(formTask.assignedTo),
-            progress: getProgressByStatus(
-              formTask.status,
-              task.progress,
-              task.status
-            ),
-          };
-        })
-      );
-    } else {
-      const task = {
-        ...formTask,
-        id: Date.now(),
-        title: formTask.title.trim(),
-        project: formTask.project.trim(),
-        initials: getInitials(formTask.assignedTo),
-        progress: getProgressByStatus(formTask.status),
-      };
+    setOpenDialog(true);
+  };
 
-      setTasks((previousTasks) => [task, ...previousTasks]);
-    }
-
+  const handleCloseDialog = () => {
     setOpenDialog(false);
     setEditingTask(null);
-    setFormTask(emptyTask);
+    setNewTask(emptyTask);
   };
 
-  const handleViewDetails = () => {
-    setSelectedTask(menuTask);
-    handleMenuClose();
-  };
-
-  const handleDeleteRequest = () => {
-    setTaskToDelete(menuTask);
-    handleMenuClose();
-  };
-
-  const handleDeleteConfirm = () => {
-    if (!taskToDelete) return;
-
-    setTasks((previousTasks) =>
-      previousTasks.filter((task) => task.id !== taskToDelete.id)
-    );
-
-    setTaskToDelete(null);
-  };
-
-  const handleFormChange = (field, value) => {
-    setFormTask((previous) => ({
+  const handleProjectChange = (projectId) => {
+    setNewTask((previous) => ({
       ...previous,
-      [field]: value,
+      projectId,
+      assignedToId: "",
     }));
   };
 
-  const isFormValid =
-    formTask.title.trim() &&
-    formTask.project.trim() &&
-    formTask.assignedTo &&
-    formTask.deadline;
+  const handleSaveTask = () => {
+    const title = newTask.title.trim();
+
+    if (!title || !newTask.projectId) {
+      showMessage("Please enter a task title and select a project.", "error");
+      return;
+    }
+
+    const targetProject = leaderProjects.find(
+      (project) => String(project.id) === String(newTask.projectId)
+    );
+
+    if (!targetProject) {
+      showMessage("Please select a valid project.", "error");
+      return;
+    }
+
+    if (newTask.assignedToId) {
+      const isProjectMember = (
+        targetProject.memberIds ||
+        targetProject.membersIds ||
+        []
+      ).some(
+        (memberId) => String(memberId) === String(newTask.assignedToId)
+      );
+
+      if (!isProjectMember) {
+        showMessage(
+          "The assigned employee must be a member of this project.",
+          "error"
+        );
+        return;
+      }
+    }
+
+    if (editingTask) {
+      setProjects((previousProjects) =>
+        previousProjects.map((project) => {
+          const isOldProject = project.id === editingTask.projectId;
+          const isNewProject =
+            String(project.id) === String(newTask.projectId);
+
+          if (!isOldProject && !isNewProject) return project;
+
+          let updatedTasks = [...(project.tasks || [])];
+
+          if (isOldProject) {
+            updatedTasks = updatedTasks.filter(
+              (task) => task.id !== editingTask.taskId
+            );
+          }
+
+          if (isNewProject) {
+            const oldTask = projects
+              .find((item) => item.id === editingTask.projectId)
+              ?.tasks?.find((task) => task.id === editingTask.taskId);
+
+            const updatedTask = {
+              ...oldTask,
+              ...newTask,
+              id: editingTask.taskId,
+              assignedToId: newTask.assignedToId
+                ? Number(newTask.assignedToId)
+                : null,
+            };
+
+            const alreadyExists = updatedTasks.some(
+              (task) => task.id === editingTask.taskId
+            );
+
+            if (alreadyExists) {
+              updatedTasks = updatedTasks.map((task) =>
+                task.id === editingTask.taskId ? updatedTask : task
+              );
+            } else {
+              updatedTasks = [...updatedTasks, updatedTask];
+            }
+          }
+
+          return {
+            ...project,
+            tasks: updatedTasks,
+          };
+        })
+      );
+
+      showMessage("Task updated successfully.");
+    } else {
+      const allExistingIds = projects.flatMap((project) =>
+        (project.tasks || []).map((task) => Number(task.id) || 0)
+      );
+
+      const newId = Math.max(0, ...allExistingIds) + 1;
+
+      const task = {
+        id: newId,
+        title,
+        description: newTask.description.trim(),
+        status: newTask.status,
+        priority: newTask.priority,
+        deadline: newTask.deadline,
+        assignedToId: newTask.assignedToId
+          ? Number(newTask.assignedToId)
+          : null,
+      };
+
+      setProjects((previousProjects) =>
+        previousProjects.map((project) =>
+          String(project.id) === String(newTask.projectId)
+            ? {
+                ...project,
+                tasks: [...(project.tasks || []), task],
+              }
+            : project
+        )
+      );
+
+      showMessage("Task created successfully.");
+    }
+
+    handleCloseDialog();
+  };
+
+  const handleStatusChange = (projectId, taskId, newStatus) => {
+    setProjects((previousProjects) =>
+      previousProjects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: (project.tasks || []).map((task) =>
+                task.id === taskId
+                  ? { ...task, status: newStatus }
+                  : task
+              ),
+            }
+          : project
+      )
+    );
+
+    showMessage("Task status updated successfully.");
+  };
+
+  const handleDeleteTask = (projectId, taskId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this task?"
+    );
+
+    if (!confirmed) return;
+
+    setProjects((previousProjects) =>
+      previousProjects.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              tasks: (project.tasks || []).filter(
+                (task) => task.id !== taskId
+              ),
+            }
+          : project
+      )
+    );
+
+    showMessage("Task deleted successfully.");
+  };
 
   return (
     <Box>
@@ -520,11 +610,9 @@ function TeamLeaderTasks() {
       <Stack
         direction={{ xs: "column", sm: "row" }}
         spacing={2}
-        sx={{
-          justifyContent: "space-between",
-          alignItems: { xs: "flex-start", sm: "center" },
-          mb: 4,
-        }}
+        justifyContent="space-between"
+        alignItems={{ xs: "flex-start", sm: "center" }}
+        mb={4}
       >
         <Box>
           <Typography variant="h4" fontWeight={700} mb={1}>
@@ -539,7 +627,8 @@ function TeamLeaderTasks() {
         <Button
           variant="contained"
           startIcon={<AddRounded />}
-          onClick={handleCreateOpen}
+          onClick={handleOpenCreateDialog}
+          disabled={leaderProjects.length === 0}
           sx={{
             backgroundColor: "#17365D",
             borderRadius: 2,
@@ -553,6 +642,12 @@ function TeamLeaderTasks() {
           Create New Task
         </Button>
       </Stack>
+
+      {!currentLeader && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          The current team leader was not found in the employees list.
+        </Alert>
+      )}
 
       {/* Summary Cards */}
       <Box
@@ -605,10 +700,8 @@ function TeamLeaderTasks() {
             <CardContent sx={{ p: 2.5 }}>
               <Stack
                 direction="row"
-                sx={{
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                justifyContent="space-between"
+                alignItems="center"
               >
                 <Box>
                   <Typography fontSize={13} color="text.secondary" mb={1}>
@@ -667,14 +760,12 @@ function TeamLeaderTasks() {
               placeholder="Search tasks, projects or members..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchRounded color="action" />
-                    </InputAdornment>
-                  ),
-                },
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchRounded color="action" />
+                  </InputAdornment>
+                ),
               }}
             />
 
@@ -718,11 +809,9 @@ function TeamLeaderTasks() {
       {/* Tasks List */}
       <Stack
         direction="row"
-        sx={{
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-        }}
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
       >
         <Typography variant="h6" fontWeight={700}>
           All Tasks
@@ -745,14 +834,23 @@ function TeamLeaderTasks() {
             gap: 2.5,
           }}
         >
-          {filteredTasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onStatusChange={handleStatusChange}
-              onMenuOpen={handleMenuOpen}
-            />
-          ))}
+          {filteredTasks.map((task) => {
+            const project = leaderProjects.find(
+              (item) => item.id === task.projectId
+            );
+
+            return (
+              <TaskCard
+                key={`${task.projectId}-${task.id}`}
+                task={task}
+                project={project}
+                assignedEmployee={task.assignedEmployee}
+                onStatusChange={handleStatusChange}
+                onEdit={handleOpenEditDialog}
+                onDelete={handleDeleteTask}
+              />
+            );
+          })}
         </Box>
       ) : (
         <Card
@@ -770,66 +868,29 @@ function TeamLeaderTasks() {
           </Typography>
 
           <Typography color="text.secondary" fontSize={14}>
-            Try changing your search or filter options.
+            Try changing your search or filter options, or create a new task.
           </Typography>
         </Card>
       )}
 
-      {/* Task Actions Menu */}
-      <Menu
-        anchorEl={menuAnchor}
-        open={Boolean(menuAnchor)}
-        onClose={handleMenuClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
-        }}
-      >
-        <MenuItem onClick={handleViewDetails}>
-          <VisibilityOutlined sx={{ mr: 1.5, fontSize: 19 }} />
-          View Details
-        </MenuItem>
-
-        <MenuItem onClick={handleEditOpen}>
-          <EditOutlined sx={{ mr: 1.5, fontSize: 19 }} />
-          Edit Task
-        </MenuItem>
-
-        <Divider />
-
-        <MenuItem
-          onClick={handleDeleteRequest}
-          sx={{ color: "error.main" }}
-        >
-          <DeleteOutlineRounded sx={{ mr: 1.5, fontSize: 19 }} />
-          Delete Task
-        </MenuItem>
-      </Menu>
-
       {/* Create / Edit Task Dialog */}
       <Dialog
         open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        onClose={handleCloseDialog}
         fullWidth
         maxWidth="sm"
       >
         <DialogTitle>
           <Stack
             direction="row"
-            sx={{
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
+            justifyContent="space-between"
+            alignItems="center"
           >
             <Typography variant="h6" fontWeight={700}>
               {editingTask ? "Edit Task" : "Create New Task"}
             </Typography>
 
-            <IconButton onClick={() => setOpenDialog(false)}>
+            <IconButton onClick={handleCloseDialog}>
               <CloseRounded />
             </IconButton>
           </Stack>
@@ -841,34 +902,64 @@ function TeamLeaderTasks() {
               fullWidth
               label="Task Title"
               placeholder="Enter task title"
-              value={formTask.title}
+              value={newTask.title}
               onChange={(event) =>
-                handleFormChange("title", event.target.value)
+                setNewTask((previous) => ({
+                  ...previous,
+                  title: event.target.value,
+                }))
               }
             />
 
             <TextField
               fullWidth
-              label="Project Name"
-              placeholder="Enter project name"
-              value={formTask.project}
+              multiline
+              minRows={2}
+              label="Description"
+              placeholder="Enter task description"
+              value={newTask.description}
               onChange={(event) =>
-                handleFormChange("project", event.target.value)
+                setNewTask((previous) => ({
+                  ...previous,
+                  description: event.target.value,
+                }))
               }
             />
 
             <TextField
               select
               fullWidth
-              label="Assign To"
-              value={formTask.assignedTo}
-              onChange={(event) =>
-                handleFormChange("assignedTo", event.target.value)
-              }
+              label="Project"
+              value={newTask.projectId}
+              onChange={(event) => handleProjectChange(event.target.value)}
             >
-              {teamMembers.map((member) => (
-                <MenuItem key={member} value={member}>
-                  {member}
+              {leaderProjects.map((project) => (
+                <MenuItem key={project.id} value={String(project.id)}>
+                  {project.name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              select
+              fullWidth
+              label="Assign To"
+              value={newTask.assignedToId}
+              onChange={(event) =>
+                setNewTask((previous) => ({
+                  ...previous,
+                  assignedToId: event.target.value,
+                }))
+              }
+              disabled={!selectedProject || projectMembers.length === 0}
+            >
+              <MenuItem value="">
+                Unassigned
+              </MenuItem>
+
+              {projectMembers.map((member) => (
+                <MenuItem key={member.id} value={String(member.id)}>
+                  {member.name}
                 </MenuItem>
               ))}
             </TextField>
@@ -877,9 +968,12 @@ function TeamLeaderTasks() {
               select
               fullWidth
               label="Priority"
-              value={formTask.priority}
+              value={newTask.priority}
               onChange={(event) =>
-                handleFormChange("priority", event.target.value)
+                setNewTask((previous) => ({
+                  ...previous,
+                  priority: event.target.value,
+                }))
               }
             >
               {priorityOptions.map((priority) => (
@@ -893,9 +987,12 @@ function TeamLeaderTasks() {
               select
               fullWidth
               label="Status"
-              value={formTask.status}
+              value={newTask.status}
               onChange={(event) =>
-                handleFormChange("status", event.target.value)
+                setNewTask((previous) => ({
+                  ...previous,
+                  status: event.target.value,
+                }))
               }
             >
               {statusOptions.map((status) => (
@@ -909,29 +1006,27 @@ function TeamLeaderTasks() {
               fullWidth
               type="date"
               label="Deadline"
-              slotProps={{
-                inputLabel: { shrink: true },
-              }}
-              value={formTask.deadline}
+              InputLabelProps={{ shrink: true }}
+              value={newTask.deadline}
               onChange={(event) =>
-                handleFormChange("deadline", event.target.value)
+                setNewTask((previous) => ({
+                  ...previous,
+                  deadline: event.target.value,
+                }))
               }
             />
           </Stack>
         </DialogContent>
 
         <DialogActions sx={{ p: 2.5 }}>
-          <Button
-            color="inherit"
-            onClick={() => setOpenDialog(false)}
-          >
+          <Button color="inherit" onClick={handleCloseDialog}>
             Cancel
           </Button>
 
           <Button
             variant="contained"
             onClick={handleSaveTask}
-            disabled={!isFormValid}
+            disabled={!newTask.title.trim() || !newTask.projectId}
             sx={{
               backgroundColor: "#17365D",
               "&:hover": {
@@ -944,199 +1039,31 @@ function TeamLeaderTasks() {
         </DialogActions>
       </Dialog>
 
-      {/* View Task Details Dialog */}
-      <Dialog
-        open={Boolean(selectedTask)}
-        onClose={() => setSelectedTask(null)}
-        fullWidth
-        maxWidth="sm"
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() =>
+          setSnackbar((previous) => ({
+            ...previous,
+            open: false,
+          }))
+        }
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        {selectedTask && (
-          <>
-            <DialogTitle>
-              <Stack
-                direction="row"
-                sx={{
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="h6" fontWeight={700}>
-                  Task Details
-                </Typography>
-
-                <IconButton onClick={() => setSelectedTask(null)}>
-                  <CloseRounded />
-                </IconButton>
-              </Stack>
-            </DialogTitle>
-
-            <DialogContent dividers>
-              <Stack spacing={2.5} sx={{ py: 1 }}>
-                <Box>
-                  <Typography
-                    fontSize={12}
-                    color="text.secondary"
-                    mb={0.5}
-                  >
-                    TASK TITLE
-                  </Typography>
-
-                  <Typography fontWeight={700} fontSize={18}>
-                    {selectedTask.title}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Typography
-                    fontSize={12}
-                    color="text.secondary"
-                    mb={0.5}
-                  >
-                    PROJECT
-                  </Typography>
-
-                  <Typography fontWeight={600}>
-                    {selectedTask.project}
-                  </Typography>
-                </Box>
-
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip
-                    label={selectedTask.status}
-                    color={getStatusColor(selectedTask.status)}
-                    variant="outlined"
-                  />
-
-                  <Chip
-                    label={selectedTask.priority}
-                    color={getPriorityColor(selectedTask.priority)}
-                  />
-                </Stack>
-
-                <Divider />
-
-                <Box>
-                  <Typography
-                    fontSize={12}
-                    color="text.secondary"
-                    mb={1}
-                  >
-                    ASSIGNED MEMBER
-                  </Typography>
-
-                  <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Avatar
-                      sx={{
-                        backgroundColor: "#DBEAFE",
-                        color: "#17365D",
-                      }}
-                    >
-                      {selectedTask.initials}
-                    </Avatar>
-
-                    <Typography fontWeight={600}>
-                      {selectedTask.assignedTo}
-                    </Typography>
-                  </Stack>
-                </Box>
-
-                <Box>
-                  <Typography
-                    fontSize={12}
-                    color="text.secondary"
-                    mb={0.5}
-                  >
-                    DEADLINE
-                  </Typography>
-
-                  <Typography fontWeight={600}>
-                    {selectedTask.deadline}
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    mb={1}
-                  >
-                    <Typography
-                      fontSize={12}
-                      color="text.secondary"
-                    >
-                      PROGRESS
-                    </Typography>
-
-                    <Typography fontWeight={700} fontSize={13}>
-                      {selectedTask.progress}%
-                    </Typography>
-                  </Stack>
-
-                  <LinearProgress
-                    variant="determinate"
-                    value={selectedTask.progress}
-                    sx={{
-                      height: 8,
-                      borderRadius: 5,
-                      "& .MuiLinearProgress-bar": {
-                        backgroundColor:
-                          selectedTask.status === "Completed"
-                            ? "#16A34A"
-                            : "#2563EB",
-                      },
-                    }}
-                  />
-                </Box>
-              </Stack>
-            </DialogContent>
-
-            <DialogActions sx={{ p: 2 }}>
-              <Button onClick={() => setSelectedTask(null)}>
-                Close
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={Boolean(taskToDelete)}
-        onClose={() => setTaskToDelete(null)}
-        fullWidth
-        maxWidth="xs"
-      >
-        <DialogTitle fontWeight={700}>
-          Delete Task?
-        </DialogTitle>
-
-        <DialogContent>
-          <Typography color="text.secondary" fontSize={14}>
-            Are you sure you want to delete
-            {" "}
-            <strong>{taskToDelete?.title}</strong>?
-            This action cannot be undone.
-          </Typography>
-        </DialogContent>
-
-        <DialogActions sx={{ p: 2 }}>
-          <Button
-            color="inherit"
-            onClick={() => setTaskToDelete(null)}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteConfirm}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={() =>
+            setSnackbar((previous) => ({
+              ...previous,
+              open: false,
+            }))
+          }
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

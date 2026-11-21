@@ -1,4 +1,3 @@
-
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -27,6 +26,8 @@ import {
   Stack,
   IconButton,
   Menu,
+  Alert,
+  Snackbar,
 } from "@mui/material";
 
 import {
@@ -35,6 +36,9 @@ import {
   MoreHorizRounded,
   FolderOutlined,
 } from "@mui/icons-material";
+
+import { useAppData } from "../../../hooks/useAppData";
+import { calculateProjectProgress } from "./projectsData";
 
 const statusStyles = {
   "In Progress": { color: "#2563EB", backgroundColor: "#DBEAFE" },
@@ -46,7 +50,6 @@ const statusStyles = {
 const emptyProject = {
   name: "",
   description: "",
-  leader: "",
   startDate: "",
   endDate: "",
   status: "Planning",
@@ -62,12 +65,10 @@ const formatDate = (date) => {
   });
 };
 
-function TeamLeaderProjects({
-  projects,
-  setProjects,
-  currentTeamLeader,
-}) {
+function TeamLeaderProjects({ currentTeamLeader }) {
   const navigate = useNavigate();
+
+  const { projects, setProjects, employees } = useAppData();
 
   const [activeTab, setActiveTab] = useState("All");
   const [search, setSearch] = useState("");
@@ -81,14 +82,31 @@ function TeamLeaderProjects({
 
   const [deleteDialog, setDeleteDialog] = useState(false);
 
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // Find the current team leader from shared employees data
+  const currentLeader = useMemo(() => {
+    return employees.find(
+      (employee) => employee.name === currentTeamLeader
+    );
+  }, [employees, currentTeamLeader]);
+
+  const currentLeaderId = currentLeader?.id;
+
   // Only show projects owned by the current team leader
   const myProjects = useMemo(() => {
-    return projects.filter(
-      (project) => project.leader === currentTeamLeader
-    );
-  }, [projects, currentTeamLeader]);
+    if (!currentLeaderId) return [];
 
-  // Search and tabs work only on the current team leader's projects
+    return projects.filter(
+      (project) => project.leaderId === currentLeaderId
+    );
+  }, [projects, currentLeaderId]);
+
+  // Search and tabs
   const filteredProjects = useMemo(() => {
     return myProjects.filter((project) => {
       const searchValue = search.toLowerCase();
@@ -114,12 +132,31 @@ function TeamLeaderProjects({
     (project) => project.status === "Completed"
   ).length;
 
-  const openAddDialog = () => {
-    setEditingProject(null);
-    setForm({
-      ...emptyProject,
-      leader: currentTeamLeader,
+  const showNotification = (message, severity = "success") => {
+    setNotification({
+      open: true,
+      message,
+      severity,
     });
+  };
+
+  const closeDialog = () => {
+    setOpenDialog(false);
+    setEditingProject(null);
+    setForm(emptyProject);
+  };
+
+  const openAddDialog = () => {
+    if (!currentLeaderId) {
+      showNotification(
+        "The current team leader could not be found.",
+        "error"
+      );
+      return;
+    }
+
+    setEditingProject(null);
+    setForm(emptyProject);
     setOpenDialog(true);
   };
 
@@ -129,12 +166,11 @@ function TeamLeaderProjects({
     setEditingProject(selectedProject);
 
     setForm({
-      name: selectedProject.name,
-      description: selectedProject.description,
-      leader: currentTeamLeader,
-      startDate: selectedProject.startDate,
-      endDate: selectedProject.endDate,
-      status: selectedProject.status,
+      name: selectedProject.name || "",
+      description: selectedProject.description || "",
+      startDate: selectedProject.startDate || "",
+      endDate: selectedProject.endDate || "",
+      status: selectedProject.status || "Planning",
     });
 
     setMenuAnchor(null);
@@ -148,6 +184,12 @@ function TeamLeaderProjects({
       !form.endDate ||
       form.endDate < form.startDate
     ) {
+      showNotification("Please enter valid project information.", "error");
+      return;
+    }
+
+    if (!currentLeaderId) {
+      showNotification("Team leader information is missing.", "error");
       return;
     }
 
@@ -155,7 +197,7 @@ function TeamLeaderProjects({
       setProjects((prev) =>
         prev.map((project) =>
           project.id === editingProject.id &&
-          project.leader === currentTeamLeader
+          project.leaderId === currentLeaderId
             ? {
                 ...project,
                 name: form.name.trim(),
@@ -163,69 +205,80 @@ function TeamLeaderProjects({
                 startDate: form.startDate,
                 endDate: form.endDate,
                 status: form.status,
-                progress:
-                  form.status === "Completed"
-                    ? 100
-                    : form.status === "Planning"
-                      ? 0
-                      : project.progress === 100
-                        ? 0
-                        : project.progress,
               }
             : project
         )
       );
+
+      showNotification("Project updated successfully.");
     } else {
+      const newProjectId = Date.now();
+
       const newProject = {
-        id: Date.now(),
-        ...form,
+        id: newProjectId,
         name: form.name.trim(),
         description: form.description.trim(),
-        leader: currentTeamLeader,
-        progress: form.status === "Completed" ? 100 : 0,
-        members: [currentTeamLeader],
+        leaderId: currentLeaderId,
+        status: form.status,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        memberIds: [currentLeaderId],
         tasks: [],
         activities: [
           {
-            id: Date.now(),
+            id: Date.now() + 1,
             title: "Project created",
-            user: currentTeamLeader,
+            userId: currentLeaderId,
             date: form.startDate,
           },
         ],
       };
 
       setProjects((prev) => [newProject, ...prev]);
+
+      showNotification("Project created successfully.");
     }
 
-    setOpenDialog(false);
-    setForm(emptyProject);
-    setEditingProject(null);
+    closeDialog();
   };
 
   const handleDeleteProject = () => {
-    if (!selectedProject) return;
+    if (!selectedProject || !currentLeaderId) return;
 
     setProjects((prev) =>
       prev.filter(
         (project) =>
           project.id !== selectedProject.id ||
-          project.leader !== currentTeamLeader
+          project.leaderId !== currentLeaderId
       )
     );
 
     setDeleteDialog(false);
     setMenuAnchor(null);
     setSelectedProject(null);
+
+    showNotification("Project deleted successfully.");
   };
 
   const openProjectMenu = (event, project) => {
     event.stopPropagation();
 
-    if (project.leader !== currentTeamLeader) return;
+    if (project.leaderId !== currentLeaderId) return;
 
     setSelectedProject(project);
     setMenuAnchor(event.currentTarget);
+  };
+
+  const getProjectLeaderName = (project) => {
+    const leader = employees.find(
+      (employee) => employee.id === project.leaderId
+    );
+
+    return leader?.name || "Unknown";
+  };
+
+  const getProjectProgress = (project) => {
+    return calculateProjectProgress(project.tasks || []);
   };
 
   return (
@@ -401,129 +454,133 @@ function TeamLeaderProjects({
             </TableHead>
 
             <TableBody>
-              {filteredProjects.map((project) => (
-                <TableRow
-                  key={project.id}
-                  hover
-                  onClick={() => navigate(`/projects/${project.id}`)}
-                  sx={{
-                    cursor: "pointer",
-                    "&:last-child td": { borderBottom: 0 },
-                  }}
-                >
-                  <TableCell sx={{ py: 2.2 }}>
-                    <Stack direction="row" alignItems="center" spacing={1.5}>
-                      <Box
-                        sx={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: "10px",
-                          backgroundColor: "#EFF6FF",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#2563EB",
-                        }}
-                      >
-                        <FolderOutlined />
-                      </Box>
+              {filteredProjects.map((project) => {
+                const progress = getProjectProgress(project);
 
-                      <Box>
-                        <Typography
+                return (
+                  <TableRow
+                    key={project.id}
+                    hover
+                    onClick={() => navigate(`/projects/${project.id}`)}
+                    sx={{
+                      cursor: "pointer",
+                      "&:last-child td": { borderBottom: 0 },
+                    }}
+                  >
+                    <TableCell sx={{ py: 2.2 }}>
+                      <Stack direction="row" alignItems="center" spacing={1.5}>
+                        <Box
                           sx={{
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            color: "#17365D",
+                            width: 38,
+                            height: 38,
+                            borderRadius: "10px",
+                            backgroundColor: "#EFF6FF",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#2563EB",
                           }}
                         >
-                          {project.name}
-                        </Typography>
+                          <FolderOutlined />
+                        </Box>
 
-                        <Typography variant="caption" color="text.secondary">
-                          {project.description}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </TableCell>
+                        <Box>
+                          <Typography
+                            sx={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "#17365D",
+                            }}
+                          >
+                            {project.name}
+                          </Typography>
 
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    <Typography variant="body2" fontWeight={500}>
-                      {project.leader}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell>
-                    <Chip
-                      label={project.status}
-                      size="small"
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: "11px",
-                        borderRadius: "6px",
-                        color:
-                          statusStyles[project.status]?.color || "#64748B",
-                        backgroundColor:
-                          statusStyles[project.status]?.backgroundColor ||
-                          "#F1F5F9",
-                      }}
-                    />
-                  </TableCell>
-
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    <Typography variant="body2">
-                      {formatDate(project.startDate)}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    <Typography variant="body2">
-                      {formatDate(project.endDate)}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell sx={{ minWidth: 150 }}>
-                    <Stack spacing={0.8}>
-                      <Stack direction="row" justifyContent="space-between">
-                        <Typography variant="caption" color="text.secondary">
-                          Progress
-                        </Typography>
-
-                        <Typography
-                          variant="caption"
-                          fontWeight={700}
-                          color="#17365D"
-                        >
-                          {project.progress}%
-                        </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {project.description}
+                          </Typography>
+                        </Box>
                       </Stack>
+                    </TableCell>
 
-                      <LinearProgress
-                        variant="determinate"
-                        value={project.progress}
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2" fontWeight={500}>
+                        {getProjectLeaderName(project)}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={project.status}
+                        size="small"
                         sx={{
-                          height: 7,
-                          borderRadius: 5,
-                          backgroundColor: "#E2E8F0",
-                          "& .MuiLinearProgress-bar": {
-                            borderRadius: 5,
-                            backgroundColor:
-                              project.progress === 100 ? "#16A34A" : "#2563EB",
-                          },
+                          fontWeight: 600,
+                          fontSize: "11px",
+                          borderRadius: "6px",
+                          color:
+                            statusStyles[project.status]?.color || "#64748B",
+                          backgroundColor:
+                            statusStyles[project.status]?.backgroundColor ||
+                            "#F1F5F9",
                         }}
                       />
-                    </Stack>
-                  </TableCell>
+                    </TableCell>
 
-                  <TableCell align="right">
-                    <IconButton
-                      size="small"
-                      onClick={(event) => openProjectMenu(event, project)}
-                    >
-                      <MoreHorizRounded />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2">
+                        {formatDate(project.startDate)}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      <Typography variant="body2">
+                        {formatDate(project.endDate)}
+                      </Typography>
+                    </TableCell>
+
+                    <TableCell sx={{ minWidth: 150 }}>
+                      <Stack spacing={0.8}>
+                        <Stack direction="row" justifyContent="space-between">
+                          <Typography variant="caption" color="text.secondary">
+                            Progress
+                          </Typography>
+
+                          <Typography
+                            variant="caption"
+                            fontWeight={700}
+                            color="#17365D"
+                          >
+                            {progress}%
+                          </Typography>
+                        </Stack>
+
+                        <LinearProgress
+                          variant="determinate"
+                          value={progress}
+                          sx={{
+                            height: 7,
+                            borderRadius: 5,
+                            backgroundColor: "#E2E8F0",
+                            "& .MuiLinearProgress-bar": {
+                              borderRadius: 5,
+                              backgroundColor:
+                                progress === 100 ? "#16A34A" : "#2563EB",
+                            },
+                          }}
+                        />
+                      </Stack>
+                    </TableCell>
+
+                    <TableCell align="right">
+                      <IconButton
+                        size="small"
+                        onClick={(event) => openProjectMenu(event, project)}
+                      >
+                        <MoreHorizRounded />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
 
               {filteredProjects.length === 0 && (
                 <TableRow>
@@ -580,7 +637,7 @@ function TeamLeaderProjects({
       {/* Add / Edit Dialog */}
       <Dialog
         open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        onClose={closeDialog}
         fullWidth
         maxWidth="sm"
       >
@@ -594,7 +651,9 @@ function TeamLeaderProjects({
               label="Project Name"
               fullWidth
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, name: event.target.value })
+              }
             />
 
             <TextField
@@ -603,8 +662,8 @@ function TeamLeaderProjects({
               multiline
               rows={3}
               value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
+              onChange={(event) =>
+                setForm({ ...form, description: event.target.value })
               }
             />
 
@@ -613,7 +672,9 @@ function TeamLeaderProjects({
               select
               fullWidth
               value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, status: event.target.value })
+              }
             >
               <MenuItem value="Planning">Planning</MenuItem>
               <MenuItem value="In Progress">In Progress</MenuItem>
@@ -626,8 +687,8 @@ function TeamLeaderProjects({
               type="date"
               fullWidth
               value={form.startDate}
-              onChange={(e) =>
-                setForm({ ...form, startDate: e.target.value })
+              onChange={(event) =>
+                setForm({ ...form, startDate: event.target.value })
               }
               slotProps={{ inputLabel: { shrink: true } }}
             />
@@ -637,8 +698,8 @@ function TeamLeaderProjects({
               type="date"
               fullWidth
               value={form.endDate}
-              onChange={(e) =>
-                setForm({ ...form, endDate: e.target.value })
+              onChange={(event) =>
+                setForm({ ...form, endDate: event.target.value })
               }
               slotProps={{
                 inputLabel: { shrink: true },
@@ -649,7 +710,7 @@ function TeamLeaderProjects({
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button onClick={() => setOpenDialog(false)} color="inherit">
+          <Button onClick={closeDialog} color="inherit">
             Cancel
           </Button>
 
@@ -706,6 +767,26 @@ function TeamLeaderProjects({
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Notifications */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={3000}
+        onClose={() =>
+          setNotification((prev) => ({ ...prev, open: false }))
+        }
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          severity={notification.severity}
+          variant="filled"
+          onClose={() =>
+            setNotification((prev) => ({ ...prev, open: false }))
+          }
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

@@ -43,16 +43,22 @@ import {
   LabelList,
 } from "recharts";
 
-// Temporary mock data until HR data is unified.
-const departmentsData = [
-  { name: "Development", employees: 48 },
-  { name: "Marketing", employees: 26 },
-  { name: "HR", employees: 12 },
-  { name: "Finance", employees: 20 },
-  { name: "Operations", employees: 50 },
-];
+import { useAppData } from "../../../hooks/useAppData";
 
-const chartColors = ["#2563EB", "#16A34A", "#F59E0B", "#94A3B8"];
+import {
+  calculateProjectProgress,
+} from "../../team-leader/projects/projectsData";
+
+// ==============================
+// Constants
+// ==============================
+
+const chartColors = [
+  "#2563EB",
+  "#16A34A",
+  "#F59E0B",
+  "#94A3B8",
+];
 
 const statusColors = {
   "In Progress": "#2563EB",
@@ -67,7 +73,7 @@ const formatNumber = (value) =>
 const formatDate = (date) => {
   if (!date) return "No due date";
 
-  const parsedDate = new Date(`${date}T00:00:00`);
+  const parsedDate = new Date(date);
 
   if (Number.isNaN(parsedDate.getTime())) return date;
 
@@ -82,17 +88,24 @@ const getStatusColor = (status) => {
   switch (status) {
     case "Completed":
       return "success";
+
     case "In Progress":
       return "info";
+
     case "To Do":
       return "warning";
+
     default:
       return "default";
   }
 };
 
 const isProjectOverdue = (project) => {
-  if (!project.endDate || project.status === "Completed") {
+  if (
+    !project.endDate ||
+    project.status === "Completed" ||
+    calculateProjectProgress(project.tasks || []) === 100
+  ) {
     return false;
   }
 
@@ -101,7 +114,10 @@ const isProjectOverdue = (project) => {
 
   const endDate = new Date(`${project.endDate}T00:00:00`);
 
-  return !Number.isNaN(endDate.getTime()) && endDate < today;
+  return (
+    !Number.isNaN(endDate.getTime()) &&
+    endDate < today
+  );
 };
 
 // ==============================
@@ -127,6 +143,7 @@ function StatCard({
         position: "relative",
         overflow: "hidden",
         transition: "all 0.25s ease",
+
         "&:hover": {
           transform: "translateY(-4px)",
           boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
@@ -209,7 +226,12 @@ function StatCard({
 // Chart Card
 // ==============================
 
-function ChartCard({ title, subtitle, children, action }) {
+function ChartCard({
+  title,
+  subtitle,
+  children,
+  action,
+}) {
   return (
     <Paper
       elevation={0}
@@ -219,7 +241,9 @@ function ChartCard({ title, subtitle, children, action }) {
         border: "1px solid #E8EDF5",
         height: "100%",
         minWidth: 0,
+
         transition: "box-shadow 0.2s ease",
+
         "&:hover": {
           boxShadow: "0 8px 24px rgba(15, 23, 42, 0.04)",
         },
@@ -232,7 +256,11 @@ function ChartCard({ title, subtitle, children, action }) {
         spacing={1}
       >
         <Box>
-          <Typography fontWeight={700} color="#17365D" fontSize={16}>
+          <Typography
+            fontWeight={700}
+            color="#17365D"
+            fontSize={16}
+          >
             {title}
           </Typography>
 
@@ -259,11 +287,20 @@ function ChartCard({ title, subtitle, children, action }) {
 // Project Row
 // ==============================
 
-function ProjectRow({ project }) {
-  const progress = Math.min(
-    100,
-    Math.max(0, Number(project.progress) || 0)
+function ProjectRow({
+  project,
+  employees,
+}) {
+  const progress = calculateProjectProgress(
+    project.tasks || []
   );
+
+  const leader = employees.find(
+    (employee) => employee.id === project.leaderId
+  );
+
+  const members =
+    project.membersIds || project.memberIds || [];
 
   const overdue = isProjectOverdue(project);
 
@@ -276,13 +313,18 @@ function ProjectRow({ project }) {
         px: 1,
         borderBottom: "1px solid #F1F5F9",
         transition: "background-color 0.2s",
+
         "&:hover": {
           bgcolor: "#F8FAFC",
         },
       }}
     >
       <Box sx={{ width: "27%", pr: 1 }}>
-        <Typography fontSize={13} fontWeight={600} noWrap>
+        <Typography
+          fontSize={13}
+          fontWeight={600}
+          noWrap
+        >
           {project.name}
         </Typography>
 
@@ -292,7 +334,11 @@ function ProjectRow({ project }) {
           spacing={0.5}
           sx={{ mt: 0.5 }}
         >
-          <Typography fontSize={10} color="text.secondary" noWrap>
+          <Typography
+            fontSize={10}
+            color="text.secondary"
+            noWrap
+          >
             Due: {formatDate(project.endDate)}
           </Typography>
 
@@ -312,14 +358,21 @@ function ProjectRow({ project }) {
       </Box>
 
       <Box sx={{ width: "20%", pr: 1 }}>
-        <Typography fontSize={12} color="text.secondary" noWrap>
-          {project.leader || "Not assigned"}
+        <Typography
+          fontSize={12}
+          color="text.secondary"
+          noWrap
+        >
+          {leader?.name || "Not assigned"}
         </Typography>
       </Box>
 
       <Box sx={{ width: "15%" }}>
-        <Typography fontSize={12} color="text.secondary">
-          {(project.members || []).length}
+        <Typography
+          fontSize={12}
+          color="text.secondary"
+        >
+          {members.length}
         </Typography>
       </Box>
 
@@ -337,7 +390,11 @@ function ProjectRow({ project }) {
       </Box>
 
       <Box sx={{ width: "20%", pr: 1 }}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+        >
           <LinearProgress
             variant="determinate"
             value={progress}
@@ -350,7 +407,10 @@ function ProjectRow({ project }) {
             }}
           />
 
-          <Typography fontSize={11} fontWeight={700}>
+          <Typography
+            fontSize={11}
+            fontWeight={700}
+          >
             {progress}%
           </Typography>
         </Stack>
@@ -363,11 +423,41 @@ function ProjectRow({ project }) {
 // Main Admin Dashboard
 // ==============================
 
-export default function AdminDashboard({ projects = [] }) {
+export default function AdminDashboard() {
+  const { employees, projects } = useAppData();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
+  // ==============================
+  // Employee Statistics
+  // ==============================
+
+  const totalEmployees = employees.length;
+
+  const departmentsData = useMemo(() => {
+    const departments = {};
+
+    employees.forEach((employee) => {
+      const department =
+        employee.department || "Unassigned";
+
+      departments[department] =
+        (departments[department] || 0) + 1;
+    });
+
+    return Object.entries(departments).map(
+      ([name, count]) => ({
+        name,
+        employees: count,
+      })
+    );
+  }, [employees]);
+
+  // ==============================
   // Project Statistics
+  // ==============================
+
   const totalProjects = projects.length;
 
   const completedProjects = projects.filter(
@@ -384,19 +474,25 @@ export default function AdminDashboard({ projects = [] }) {
           projects.reduce(
             (total, project) =>
               total +
-              Math.min(
-                100,
-                Math.max(0, Number(project.progress) || 0)
+              calculateProjectProgress(
+                project.tasks || []
               ),
             0
           ) / totalProjects
         )
       : 0;
 
-  const overdueProjects = projects.filter(isProjectOverdue).length;
+  const overdueProjects = projects.filter(
+    isProjectOverdue
+  ).length;
 
+  // ==============================
   // Task Statistics
-  const allTasks = projects.flatMap((project) => project.tasks || []);
+  // ==============================
+
+  const allTasks = projects.flatMap(
+    (project) => project.tasks || []
+  );
 
   const completedTasks = allTasks.filter(
     (task) => task.status === "Completed"
@@ -411,18 +507,28 @@ export default function AdminDashboard({ projects = [] }) {
   ).length;
 
   const categorizedTasks =
-    completedTasks + inProgressTasks + pendingTasks;
+    completedTasks +
+    inProgressTasks +
+    pendingTasks;
 
-  const otherTasks = Math.max(0, allTasks.length - categorizedTasks);
+  const otherTasks = Math.max(
+    0,
+    allTasks.length - categorizedTasks
+  );
 
   const totalTasks = allTasks.length;
 
   const taskCompletionRate =
     totalTasks > 0
-      ? Math.round((completedTasks / totalTasks) * 100)
+      ? Math.round(
+          (completedTasks / totalTasks) * 100
+        )
       : 0;
 
+  // ==============================
   // Project Status Chart
+  // ==============================
+
   const projectStatusData = [
     {
       name: "In Progress",
@@ -445,39 +551,70 @@ export default function AdminDashboard({ projects = [] }) {
       name: "Other",
       value: projects.filter(
         (project) =>
-          !["In Progress", "Completed", "To Do"].includes(
-            project.status
-          )
+          ![
+            "In Progress",
+            "Completed",
+            "To Do",
+          ].includes(project.status)
       ).length,
       color: statusColors.Other,
     },
   ].filter((item) => item.value > 0);
 
+  // ==============================
   // Tasks Chart
+  // ==============================
+
   const taskStatusData = [
-    { name: "Completed", tasks: completedTasks },
-    { name: "In Progress", tasks: inProgressTasks },
-    { name: "To Do", tasks: pendingTasks },
+    {
+      name: "Completed",
+      tasks: completedTasks,
+    },
+    {
+      name: "In Progress",
+      tasks: inProgressTasks,
+    },
+    {
+      name: "To Do",
+      tasks: pendingTasks,
+    },
     ...(otherTasks > 0
-      ? [{ name: "Other", tasks: otherTasks }]
+      ? [
+          {
+            name: "Other",
+            tasks: otherTasks,
+          },
+        ]
       : []),
   ];
 
+  // ==============================
   // Projects Progress
-  const projectsProgressData = projects.map((project) => ({
-    ...project,
-    progress: Math.min(
-      100,
-      Math.max(0, Number(project.progress) || 0)
-    ),
-  }));
+  // ==============================
 
+  const projectsProgressData = projects.map(
+    (project) => ({
+      ...project,
+      progress: calculateProjectProgress(
+        project.tasks || []
+      ),
+    })
+  );
+
+  // ==============================
   // Project Search and Filters
+  // ==============================
+
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
+      const leader = employees.find(
+        (employee) =>
+          employee.id === project.leaderId
+      );
+
       const matchesSearch = [
         project.name,
-        project.leader,
+        leader?.name,
         project.status,
       ]
         .filter(Boolean)
@@ -493,16 +630,33 @@ export default function AdminDashboard({ projects = [] }) {
 
       return matchesSearch && matchesStatus;
     });
-  }, [projects, searchTerm, statusFilter]);
+  }, [
+    projects,
+    employees,
+    searchTerm,
+    statusFilter,
+  ]);
 
-  // Recent Activities from project data
+  // ==============================
+  // Recent Activities
+  // ==============================
+
   const recentActivities = useMemo(() => {
     return projects
       .flatMap((project) =>
-        (project.activities || []).map((activity) => ({
-          ...activity,
-          projectName: project.name,
-        }))
+        (project.activities || []).map(
+          (activity) => {
+            const employee = employees.find(
+              (item) => item.id === activity.userId
+            );
+
+            return {
+              ...activity,
+              projectName: project.name,
+              userName: employee?.name || "Unknown User",
+            };
+          }
+        )
       )
       .filter((activity) => activity.date)
       .sort(
@@ -511,11 +665,17 @@ export default function AdminDashboard({ projects = [] }) {
           new Date(a.date).getTime()
       )
       .slice(0, 5);
-  }, [projects]);
+  }, [projects, employees]);
+
+  // ==============================
+  // Render
+  // ==============================
 
   return (
     <Box sx={{ pb: 4 }}>
+
       {/* Header */}
+
       <Stack
         direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
@@ -558,6 +718,7 @@ export default function AdminDashboard({ projects = [] }) {
       </Stack>
 
       {/* Statistics Cards */}
+
       <Box
         sx={{
           display: "grid",
@@ -572,8 +733,8 @@ export default function AdminDashboard({ projects = [] }) {
       >
         <StatCard
           title="Total Employees"
-          value="156"
-          subtitle="Temporary HR mock data"
+          value={formatNumber(totalEmployees)}
+          subtitle="Registered company employees"
           icon={<GroupsOutlined />}
           color="#2563EB"
           bgColor="#EFF6FF"
@@ -608,6 +769,7 @@ export default function AdminDashboard({ projects = [] }) {
       </Box>
 
       {/* Charts */}
+
       <Box
         sx={{
           display: "grid",
@@ -619,7 +781,9 @@ export default function AdminDashboard({ projects = [] }) {
           mb: 3,
         }}
       >
+
         {/* Projects Status */}
+
         <ChartCard
           title="Projects Status"
           subtitle="Distribution of company projects"
@@ -633,7 +797,10 @@ export default function AdminDashboard({ projects = [] }) {
           }
         >
           {totalProjects > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
               <PieChart>
                 <Pie
                   data={projectStatusData}
@@ -708,12 +875,16 @@ export default function AdminDashboard({ projects = [] }) {
         </ChartCard>
 
         {/* Tasks Analytics */}
+
         <ChartCard
           title="Tasks Analytics"
           subtitle="Tasks distribution by current status"
         >
           {totalTasks > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
               <BarChart
                 data={taskStatusData}
                 margin={{
@@ -731,7 +902,10 @@ export default function AdminDashboard({ projects = [] }) {
 
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 10, fill: "#64748B" }}
+                  tick={{
+                    fontSize: 10,
+                    fill: "#64748B",
+                  }}
                   axisLine={false}
                   tickLine={false}
                   interval={0}
@@ -739,7 +913,10 @@ export default function AdminDashboard({ projects = [] }) {
 
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  tick={{
+                    fontSize: 11,
+                    fill: "#64748B",
+                  }}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -758,14 +935,18 @@ export default function AdminDashboard({ projects = [] }) {
                   radius={[7, 7, 0, 0]}
                   maxBarSize={55}
                 >
-                  {taskStatusData.map((entry, index) => (
-                    <Cell
-                      key={entry.name}
-                      fill={
-                        chartColors[index % chartColors.length]
-                      }
-                    />
-                  ))}
+                  {taskStatusData.map(
+                    (entry, index) => (
+                      <Cell
+                        key={entry.name}
+                        fill={
+                          chartColors[
+                            index % chartColors.length
+                          ]
+                        }
+                      />
+                    )
+                  )}
 
                   <LabelList
                     dataKey="tasks"
@@ -783,81 +964,96 @@ export default function AdminDashboard({ projects = [] }) {
         </ChartCard>
 
         {/* Department Distribution */}
+
         <ChartCard
           title="Department Distribution"
-          subtitle="Temporary employee distribution by department"
+          subtitle="Employees distribution by department"
           action={
             <Chip
-              label="Mock Data"
+              label="Live Data"
               size="small"
-              color="warning"
+              color="success"
               variant="outlined"
-              sx={{ fontSize: 10, fontWeight: 600 }}
+              sx={{
+                fontSize: 10,
+                fontWeight: 600,
+              }}
             />
           }
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={departmentsData}
-              layout="vertical"
-              margin={{
-                top: 5,
-                right: 30,
-                left: 15,
-                bottom: 5,
-              }}
+          {departmentsData.length > 0 ? (
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                horizontal={false}
-                stroke="#E9EEF5"
-              />
-
-              <XAxis
-                type="number"
-                allowDecimals={false}
-                tick={{ fontSize: 10 }}
-                axisLine={false}
-                tickLine={false}
-              />
-
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={100}
-                tick={{ fontSize: 11, fill: "#64748B" }}
-                axisLine={false}
-                tickLine={false}
-              />
-
-              <Tooltip
-                contentStyle={{
-                  borderRadius: 10,
-                  border: "1px solid #E8EDF5",
-                  fontSize: 12,
+              <BarChart
+                data={departmentsData}
+                layout="vertical"
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 15,
+                  bottom: 5,
                 }}
-              />
-
-              <Bar
-                dataKey="employees"
-                name="Employees"
-                fill="#2563EB"
-                radius={[0, 7, 7, 0]}
-                barSize={18}
               >
-                <LabelList
-                  dataKey="employees"
-                  position="right"
-                  fill="#17365D"
-                  fontSize={11}
-                  fontWeight={700}
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  horizontal={false}
+                  stroke="#E9EEF5"
                 />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+
+                <XAxis
+                  type="number"
+                  allowDecimals={false}
+                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={100}
+                  tick={{
+                    fontSize: 11,
+                    fill: "#64748B",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: 10,
+                    border: "1px solid #E8EDF5",
+                    fontSize: 12,
+                  }}
+                />
+
+                <Bar
+                  dataKey="employees"
+                  name="Employees"
+                  fill="#2563EB"
+                  radius={[0, 7, 7, 0]}
+                  barSize={18}
+                >
+                  <LabelList
+                    dataKey="employees"
+                    position="right"
+                    fill="#17365D"
+                    fontSize={11}
+                    fontWeight={700}
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <EmptyState message="No employee data available." />
+          )}
         </ChartCard>
 
         {/* Project Progress */}
+
         <ChartCard
           title="Project Progress"
           subtitle="Progress percentage for each project"
@@ -868,7 +1064,10 @@ export default function AdminDashboard({ projects = [] }) {
                 label={`${overdueProjects} Overdue`}
                 color="error"
                 size="small"
-                sx={{ fontWeight: 600, fontSize: 10 }}
+                sx={{
+                  fontWeight: 600,
+                  fontSize: 10,
+                }}
               />
             ) : null
           }
@@ -878,9 +1077,11 @@ export default function AdminDashboard({ projects = [] }) {
               height: "100%",
               overflowY: "auto",
               pr: 1,
+
               "&::-webkit-scrollbar": {
                 width: 5,
               },
+
               "&::-webkit-scrollbar-thumb": {
                 bgcolor: "#CBD5E1",
                 borderRadius: 5,
@@ -889,78 +1090,88 @@ export default function AdminDashboard({ projects = [] }) {
           >
             {projectsProgressData.length > 0 ? (
               <Stack spacing={2.3}>
-                {projectsProgressData.map((project) => {
-                  const overdue = isProjectOverdue(project);
+                {projectsProgressData.map(
+                  (project) => {
+                    const overdue =
+                      isProjectOverdue(project);
 
-                  return (
-                    <Box key={project.id}>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
-                        spacing={1}
-                        sx={{ mb: 0.8 }}
-                      >
+                    return (
+                      <Box key={project.id}>
                         <Stack
                           direction="row"
+                          justifyContent="space-between"
                           alignItems="center"
-                          spacing={0.7}
-                          sx={{ minWidth: 0 }}
+                          spacing={1}
+                          sx={{ mb: 0.8 }}
                         >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={0.7}
+                            sx={{ minWidth: 0 }}
+                          >
+                            <Typography
+                              fontSize={13}
+                              fontWeight={600}
+                              noWrap
+                            >
+                              {project.name}
+                            </Typography>
+
+                            {overdue && (
+                              <WarningAmberRounded
+                                sx={{
+                                  color: "#DC2626",
+                                  fontSize: 16,
+                                  flexShrink: 0,
+                                }}
+                              />
+                            )}
+                          </Stack>
+
                           <Typography
                             fontSize={13}
-                            fontWeight={600}
-                            noWrap
+                            fontWeight={700}
+                            color={
+                              overdue
+                                ? "#DC2626"
+                                : "#17365D"
+                            }
                           >
-                            {project.name}
+                            {project.progress}%
                           </Typography>
-
-                          {overdue && (
-                            <WarningAmberRounded
-                              sx={{
-                                color: "#DC2626",
-                                fontSize: 16,
-                                flexShrink: 0,
-                              }}
-                            />
-                          )}
                         </Stack>
 
-                        <Typography
-                          fontSize={13}
-                          fontWeight={700}
-                          color={overdue ? "#DC2626" : "#17365D"}
-                        >
-                          {project.progress}%
-                        </Typography>
-                      </Stack>
-
-                      <LinearProgress
-                        variant="determinate"
-                        value={project.progress}
-                        color={overdue ? "error" : "primary"}
-                        sx={{
-                          height: 9,
-                          borderRadius: 5,
-                          bgcolor: "#E9EEF5",
-                          "& .MuiLinearProgress-bar": {
+                        <LinearProgress
+                          variant="determinate"
+                          value={project.progress}
+                          color={
+                            overdue ? "error" : "primary"
+                          }
+                          sx={{
+                            height: 9,
                             borderRadius: 5,
-                          },
-                        }}
-                      />
+                            bgcolor: "#E9EEF5",
 
-                      {overdue && (
-                        <Typography
-                          fontSize={10}
-                          color="error.main"
-                          sx={{ mt: 0.5 }}
-                        >
-                          Deadline has passed
-                        </Typography>
-                      )}
-                    </Box>
-                  );
-                })}
+                            "& .MuiLinearProgress-bar": {
+                              borderRadius: 5,
+                            },
+                          }}
+                        />
+
+                        {overdue && (
+                          <Typography
+                            fontSize={10}
+                            color="error.main"
+                            sx={{ mt: 0.5 }}
+                          >
+                            Deadline has passed
+                          </Typography>
+                        )}
+                      </Box>
+                    );
+                  }
+                )}
               </Stack>
             ) : (
               <EmptyState message="No project data available." />
@@ -970,6 +1181,7 @@ export default function AdminDashboard({ projects = [] }) {
       </Box>
 
       {/* Projects Overview */}
+
       <Paper
         elevation={0}
         sx={{
@@ -1017,6 +1229,7 @@ export default function AdminDashboard({ projects = [] }) {
               }
               sx={{
                 minWidth: { xs: "100%", sm: 220 },
+
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
                   fontSize: 13,
@@ -1043,16 +1256,28 @@ export default function AdminDashboard({ projects = [] }) {
               }
               sx={{
                 minWidth: { xs: "100%", sm: 145 },
+
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
                   fontSize: 13,
                 },
               }}
             >
-              <MenuItem value="All">All Statuses</MenuItem>
-              <MenuItem value="In Progress">In Progress</MenuItem>
-              <MenuItem value="Completed">Completed</MenuItem>
-              <MenuItem value="To Do">To Do</MenuItem>
+              <MenuItem value="All">
+                All Statuses
+              </MenuItem>
+
+              <MenuItem value="In Progress">
+                In Progress
+              </MenuItem>
+
+              <MenuItem value="Completed">
+                Completed
+              </MenuItem>
+
+              <MenuItem value="To Do">
+                To Do
+              </MenuItem>
             </TextField>
           </Stack>
         </Stack>
@@ -1063,8 +1288,12 @@ export default function AdminDashboard({ projects = [] }) {
           alignItems="center"
           sx={{ mb: 1.5 }}
         >
-          <Typography fontSize={12} color="text.secondary">
-            Showing {filteredProjects.length} of {totalProjects} projects
+          <Typography
+            fontSize={12}
+            color="text.secondary"
+          >
+            Showing {filteredProjects.length} of{" "}
+            {totalProjects} projects
           </Typography>
 
           {overdueProjects > 0 && (
@@ -1103,7 +1332,13 @@ export default function AdminDashboard({ projects = [] }) {
                     fontWeight={700}
                     color="text.secondary"
                     sx={{
-                      width: ["27%", "20%", "15%", "18%", "20%"][index],
+                      width: [
+                        "27%",
+                        "20%",
+                        "15%",
+                        "18%",
+                        "20%",
+                      ][index],
                     }}
                   >
                     {heading}
@@ -1115,6 +1350,7 @@ export default function AdminDashboard({ projects = [] }) {
                 <ProjectRow
                   key={project.id}
                   project={project}
+                  employees={employees}
                 />
               ))}
             </Box>
@@ -1131,6 +1367,7 @@ export default function AdminDashboard({ projects = [] }) {
       </Paper>
 
       {/* Bottom Section */}
+
       <Box
         sx={{
           display: "grid",
@@ -1141,7 +1378,9 @@ export default function AdminDashboard({ projects = [] }) {
           gap: 2,
         }}
       >
+
         {/* Recent Activities */}
+
         <Paper
           elevation={0}
           sx={{
@@ -1218,9 +1457,7 @@ export default function AdminDashboard({ projects = [] }) {
                       color="text.secondary"
                       sx={{ mt: 0.3 }}
                     >
-                      {activity.user
-                        ? `${activity.user} · `
-                        : ""}
+                      {activity.userName} ·{" "}
                       {activity.projectName}
                     </Typography>
 
@@ -1245,8 +1482,6 @@ export default function AdminDashboard({ projects = [] }) {
                       </Typography>
                     </Stack>
                   </Box>
-
-                  {index !== recentActivities.length - 1 && null}
                 </Stack>
               ))
             ) : (
@@ -1256,6 +1491,7 @@ export default function AdminDashboard({ projects = [] }) {
         </Paper>
 
         {/* Company Overview */}
+
         <Paper
           elevation={0}
           sx={{
@@ -1284,7 +1520,7 @@ export default function AdminDashboard({ projects = [] }) {
             <OverviewItem
               icon={<GroupsOutlined />}
               title="Total Employees"
-              value="156"
+              value={totalEmployees}
               color="#2563EB"
               bgColor="#EFF6FF"
             />
@@ -1368,7 +1604,10 @@ function OverviewItem({
           {icon}
         </Avatar>
 
-        <Typography fontSize={13} fontWeight={500}>
+        <Typography
+          fontSize={13}
+          fontWeight={500}
+        >
           {title}
         </Typography>
       </Stack>
@@ -1403,7 +1642,10 @@ function EmptyState({ message }) {
       }}
     >
       <BusinessCenterOutlined
-        sx={{ fontSize: 32, opacity: 0.35 }}
+        sx={{
+          fontSize: 32,
+          opacity: 0.35,
+        }}
       />
 
       <Typography fontSize={13}>

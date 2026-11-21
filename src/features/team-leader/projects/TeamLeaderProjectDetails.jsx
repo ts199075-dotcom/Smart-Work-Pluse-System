@@ -1,4 +1,4 @@
-
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -17,6 +17,19 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText,
+  Snackbar,
+  Alert,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 
 import {
@@ -26,7 +39,12 @@ import {
   GroupsRounded,
   TaskAltRounded,
   AccessTimeRounded,
+  PersonAddAlt1Rounded,
+  CloseRounded,
 } from "@mui/icons-material";
+
+import { useAppData } from "../../../hooks/useAppData";
+import { calculateProjectProgress } from "./projectsData";
 
 const statusStyles = {
   "In Progress": { color: "#2563EB", backgroundColor: "#DBEAFE" },
@@ -51,18 +69,42 @@ const formatDate = (date) => {
   });
 };
 
-function TeamLeaderProjectDetails({
-  projects,
-  currentTeamLeader,
-}) {
+const getInitials = (name = "") => {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+function TeamLeaderProjectDetails({ currentTeamLeader }) {
   const { projectId } = useParams();
   const navigate = useNavigate();
+
+  const { projects, setProjects, employees } = useAppData();
+
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  const currentLeader = useMemo(
+    () => employees.find((employee) => employee.name === currentTeamLeader),
+    [employees, currentTeamLeader]
+  );
 
   // Find the project only if it belongs to the current team leader
   const project = projects.find(
     (item) =>
       String(item.id) === projectId &&
-      item.leader === currentTeamLeader
+      item.leaderId === currentLeader?.id
   );
 
   if (!project) {
@@ -98,17 +140,103 @@ function TeamLeaderProjectDetails({
   }
 
   const projectTasks = project.tasks || [];
-  const projectMembers = project.members || [];
   const projectActivities = project.activities || [];
+
+  // Resolve project leader
+  const projectLeader = employees.find(
+    (employee) => employee.id === project.leaderId
+  );
+
+  // Resolve project members from employee IDs
+  const memberIds = project.memberIds || project.membersIds || [];
+
+  const projectMembers = memberIds
+    .map((memberId) =>
+      employees.find((employee) => employee.id === memberId)
+    )
+    .filter(Boolean);
+
+  const availableEmployees = employees.filter(
+    (employee) =>
+      employee.status === "Active" &&
+      employee.id !== project.leaderId
+  );
+
+  // Resolve activity users
+  const activitiesWithUsers = projectActivities.map((activity) => {
+    const activityUser = employees.find(
+      (employee) => employee.id === activity.userId
+    );
+
+    return {
+      ...activity,
+      userName: activityUser?.name || "Unknown Employee",
+    };
+  });
 
   const completedTasks = projectTasks.filter(
     (task) => task.status === "Completed"
   ).length;
 
-  const projectProgress = Math.min(
-    100,
-    Math.max(0, Number(project.progress) || 0)
-  );
+  const projectProgress = calculateProjectProgress(projectTasks);
+
+  // Open members dialog
+  const openMembersDialog = () => {
+    setSelectedMemberIds(memberIds);
+    setMembersDialogOpen(true);
+  };
+
+  // Save project members
+  const handleSaveMembers = () => {
+    const updatedMemberIds = [
+      ...new Set([project.leaderId, ...selectedMemberIds]),
+    ];
+
+    setProjects((previousProjects) =>
+      previousProjects.map((item) =>
+        item.id === project.id
+          ? {
+              ...item,
+              memberIds: updatedMemberIds,
+              membersIds: undefined,
+            }
+          : item
+      )
+    );
+
+    setMembersDialogOpen(false);
+
+    setSnackbar({
+      open: true,
+      message: "Project team updated successfully.",
+      severity: "success",
+    });
+  };
+
+  // Remove a project member
+  const handleRemoveMember = (memberId) => {
+    if (memberId === project.leaderId) return;
+
+    const updatedMemberIds = memberIds.filter((id) => id !== memberId);
+
+    setProjects((previousProjects) =>
+      previousProjects.map((item) =>
+        item.id === project.id
+          ? {
+              ...item,
+              memberIds: updatedMemberIds,
+              membersIds: undefined,
+            }
+          : item
+      )
+    );
+
+    setSnackbar({
+      open: true,
+      message: "Team member removed successfully.",
+      severity: "success",
+    });
+  };
 
   return (
     <Box>
@@ -194,7 +322,7 @@ function TeamLeaderProjectDetails({
             {
               icon: <PersonOutlineRounded />,
               title: "Team Leader",
-              value: project.leader,
+              value: projectLeader?.name || "Unknown",
             },
             {
               icon: <CalendarMonthRounded />,
@@ -240,6 +368,7 @@ function TeamLeaderProjectDetails({
           mb: 3,
         }}
       >
+        {/* Progress */}
         <Paper
           elevation={0}
           sx={{
@@ -258,7 +387,7 @@ function TeamLeaderProjectDetails({
             color="#2563EB"
             sx={{ mt: 2 }}
           >
-            {project.progress}%
+            {projectProgress}%
           </Typography>
 
           <LinearProgress
@@ -282,6 +411,7 @@ function TeamLeaderProjectDetails({
           </Typography>
         </Paper>
 
+        {/* Team */}
         <Paper
           elevation={0}
           sx={{
@@ -290,12 +420,28 @@ function TeamLeaderProjectDetails({
             border: "1px solid #E2E8F0",
           }}
         >
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <GroupsRounded sx={{ color: "#2563EB" }} />
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            <Stack direction="row" alignItems="center" spacing={1}>
+              <GroupsRounded sx={{ color: "#2563EB" }} />
 
-            <Typography variant="h6" fontWeight={700} color="#17365D">
-              Project Team
-            </Typography>
+              <Typography variant="h6" fontWeight={700} color="#17365D">
+                Project Team
+              </Typography>
+            </Stack>
+
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<PersonAddAlt1Rounded />}
+              onClick={openMembersDialog}
+              sx={{ textTransform: "none" }}
+            >
+              Manage
+            </Button>
           </Stack>
 
           <Typography color="text.secondary" sx={{ mt: 2, mb: 2 }}>
@@ -304,31 +450,76 @@ function TeamLeaderProjectDetails({
 
           <AvatarGroup max={6} sx={{ justifyContent: "flex-start" }}>
             {projectMembers.map((member) => (
-              <Avatar
-                key={member}
-                sx={{
-                  width: 40,
-                  height: 40,
-                  bgcolor: "#DBEAFE",
-                  color: "#17365D",
-                  fontSize: 13,
-                }}
-              >
-                {member
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2)}
-              </Avatar>
+              <Tooltip key={member.id} title={member.name}>
+                <Avatar
+                  alt={member.name}
+                  sx={{
+                    width: 40,
+                    height: 40,
+                    bgcolor: "#DBEAFE",
+                    color: "#17365D",
+                    fontSize: 13,
+                  }}
+                >
+                  {getInitials(member.name)}
+                </Avatar>
+              </Tooltip>
             ))}
           </AvatarGroup>
 
-          <Stack spacing={1} sx={{ mt: 2 }}>
+          <Stack spacing={1.5} sx={{ mt: 2 }}>
             {projectMembers.map((member) => (
-              <Typography key={member} variant="body2" color="#475569">
-                • {member}
-              </Typography>
+              <Stack
+                key={member.id}
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Avatar
+                    sx={{
+                      width: 30,
+                      height: 30,
+                      bgcolor: "#EFF6FF",
+                      color: "#2563EB",
+                      fontSize: 11,
+                    }}
+                  >
+                    {getInitials(member.name)}
+                  </Avatar>
+
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>
+                      {member.name}
+                    </Typography>
+
+                    <Typography variant="caption" color="text.secondary">
+                      {member.id === project.leaderId
+                        ? "Project Leader"
+                        : member.position}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                {member.id !== project.leaderId && (
+                  <Tooltip title="Remove member">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleRemoveMember(member.id)}
+                    >
+                      <CloseRounded fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Stack>
             ))}
+
+            {projectMembers.length === 0 && (
+              <Typography color="text.secondary" variant="body2">
+                No team members assigned.
+              </Typography>
+            )}
           </Stack>
         </Paper>
       </Box>
@@ -379,7 +570,7 @@ function TeamLeaderProjectDetails({
 
                   <TableCell>
                     <Typography variant="body2">
-                      {task.priority}
+                      {task.priority || "-"}
                     </Typography>
                   </TableCell>
 
@@ -428,7 +619,7 @@ function TeamLeaderProjectDetails({
         </Typography>
 
         <Stack spacing={2.5} sx={{ mt: 3 }}>
-          {projectActivities.map((activity) => (
+          {activitiesWithUsers.map((activity) => (
             <Stack
               key={activity.id}
               direction="row"
@@ -444,11 +635,7 @@ function TeamLeaderProjectDetails({
                   fontSize: 13,
                 }}
               >
-                {activity.user
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2)}
+                {getInitials(activity.userName)}
               </Avatar>
 
               <Box>
@@ -457,7 +644,7 @@ function TeamLeaderProjectDetails({
                 </Typography>
 
                 <Typography variant="body2" color="text.secondary">
-                  {activity.user} · {formatDate(activity.date)}
+                  {activity.userName} · {formatDate(activity.date)}
                 </Typography>
               </Box>
             </Stack>
@@ -470,6 +657,88 @@ function TeamLeaderProjectDetails({
           )}
         </Stack>
       </Paper>
+
+      {/* Manage Project Members Dialog */}
+      <Dialog
+        open={membersDialogOpen}
+        onClose={() => setMembersDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ color: "#17365D", fontWeight: 700 }}>
+          Manage Project Members
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography color="text.secondary" sx={{ mb: 2 }}>
+            Select employees to add to this project.
+          </Typography>
+
+          <FormControl fullWidth>
+            <Select
+              multiple
+              value={selectedMemberIds}
+              onChange={(event) => setSelectedMemberIds(event.target.value)}
+              displayEmpty
+              renderValue={(selected) =>
+                selected.length === 0
+                  ? "Select team members"
+                  : `${selected.length} employees selected`
+              }
+            >
+              {availableEmployees.map((employee) => (
+                <MenuItem key={employee.id} value={employee.id}>
+                  <Checkbox
+                    checked={selectedMemberIds.includes(employee.id)}
+                  />
+
+                  <ListItemText
+                    primary={employee.name}
+                    secondary={`${employee.position} · ${employee.department}`}
+                  />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setMembersDialogOpen(false)}
+            sx={{ textTransform: "none" }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={handleSaveMembers}
+            sx={{ textTransform: "none" }}
+          >
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() =>
+          setSnackbar((previous) => ({ ...previous, open: false }))
+        }
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={() =>
+            setSnackbar((previous) => ({ ...previous, open: false }))
+          }
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

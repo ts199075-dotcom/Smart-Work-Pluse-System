@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Box,
@@ -26,6 +26,10 @@ import {
   CheckCircleOutlineRounded,
 } from "@mui/icons-material";
 
+import { useAppData } from "../../../hooks/useAppData";
+
+const STORAGE_KEY = "smart-workspace-role-permissions";
+
 const roles = [
   {
     id: "member",
@@ -34,7 +38,7 @@ const roles = [
     icon: <PersonOutlineRounded />,
     color: "#2563EB",
     bg: "#EFF6FF",
-    users: 120,
+    employeeRole: "Member",
   },
   {
     id: "team-leader",
@@ -43,7 +47,7 @@ const roles = [
     icon: <GroupsOutlined />,
     color: "#0891B2",
     bg: "#ECFEFF",
-    users: 12,
+    employeeRole: "Team Leader",
   },
   {
     id: "hr",
@@ -52,7 +56,7 @@ const roles = [
     icon: <BadgeOutlined />,
     color: "#7C3AED",
     bg: "#F5F3FF",
-    users: 5,
+    employeeRole: "HR",
   },
   {
     id: "admin",
@@ -61,7 +65,7 @@ const roles = [
     icon: <AdminPanelSettingsOutlined />,
     color: "#DC2626",
     bg: "#FEF2F2",
-    users: 2,
+    employeeRole: "Admin",
   },
 ];
 
@@ -112,6 +116,10 @@ const permissionGroups = [
   },
 ];
 
+const allPermissionIds = permissionGroups.flatMap((group) =>
+  group.permissions.map((permission) => permission.id)
+);
+
 const createInitialPermissions = () => ({
   member: {
     "view-dashboard": true,
@@ -126,7 +134,7 @@ const createInitialPermissions = () => ({
     "view-attendance": true,
     "manage-attendance": false,
     "manage-leaves": false,
-    "view-payroll": true,
+    "view-payroll": false,
     "manage-payroll": false,
     "manage-fines-rewards": false,
     "manage-users": false,
@@ -134,6 +142,7 @@ const createInitialPermissions = () => ({
     "manage-settings": false,
     "view-audit-logs": false,
   },
+
   "team-leader": {
     "view-dashboard": true,
     "view-notifications": true,
@@ -155,6 +164,7 @@ const createInitialPermissions = () => ({
     "manage-settings": false,
     "view-audit-logs": false,
   },
+
   hr: {
     "view-dashboard": true,
     "view-notifications": true,
@@ -176,16 +186,48 @@ const createInitialPermissions = () => ({
     "manage-settings": false,
     "view-audit-logs": false,
   },
+
   admin: Object.fromEntries(
-    permissionGroups
-      .flatMap((group) => group.permissions)
-      .map((permission) => [permission.id, true])
+    allPermissionIds.map((permissionId) => [permissionId, true])
   ),
 });
 
-const initialPermissions = createInitialPermissions();
+const defaultPermissions = createInitialPermissions();
 
-function RoleCard({ role, selected, onClick }) {
+const normalizePermissions = (storedPermissions) => {
+  const normalized = createInitialPermissions();
+
+  roles.forEach((role) => {
+    if (role.id === "admin") return;
+
+    const storedRolePermissions = storedPermissions?.[role.id];
+
+    if (!storedRolePermissions) return;
+
+    allPermissionIds.forEach((permissionId) => {
+      if (typeof storedRolePermissions[permissionId] === "boolean") {
+        normalized[role.id][permissionId] =
+          storedRolePermissions[permissionId];
+      }
+    });
+  });
+
+  return normalized;
+};
+
+const getSavedPermissions = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+
+    if (!stored) return createInitialPermissions();
+
+    return normalizePermissions(JSON.parse(stored));
+  } catch {
+    return createInitialPermissions();
+  }
+};
+
+function RoleCard({ role, selected, onClick, usersCount }) {
   return (
     <Paper
       elevation={0}
@@ -249,19 +291,21 @@ function RoleCard({ role, selected, onClick }) {
       <Divider sx={{ my: 1.5 }} />
 
       <Typography fontSize={12} color="text.secondary">
-        <strong>{role.users}</strong> assigned users
+        <strong>{usersCount}</strong> assigned users
       </Typography>
     </Paper>
   );
 }
 
 export default function AdminRoles() {
+  const { employees } = useAppData();
+
   const [selectedRole, setSelectedRole] = useState("member");
 
-  const [permissions, setPermissions] = useState(initialPermissions);
+  const [permissions, setPermissions] = useState(getSavedPermissions);
 
   const [savedPermissions, setSavedPermissions] = useState(
-    initialPermissions
+    getSavedPermissions
   );
 
   const [notification, setNotification] = useState({
@@ -272,15 +316,27 @@ export default function AdminRoles() {
 
   const currentRole = roles.find((role) => role.id === selectedRole);
 
-  const isAdmin = selectedRole === "admin";
+  const usersCountByRole = useMemo(() => {
+    return roles.reduce((result, role) => {
+      result[role.id] = employees.filter(
+        (employee) => employee.role === role.employeeRole
+      ).length;
+
+      return result;
+    }, {});
+  }, [employees]);
 
   const enabledCount = Object.values(
     permissions[selectedRole]
   ).filter(Boolean).length;
 
-  const totalCount = Object.keys(
-    permissions[selectedRole]
-  ).length;
+  const totalCount = allPermissionIds.length;
+
+  const hasUnsavedChanges =
+    JSON.stringify(permissions[selectedRole]) !==
+    JSON.stringify(savedPermissions[selectedRole]);
+
+  const isAdmin = selectedRole === "admin";
 
   const handleTogglePermission = (permissionId) => {
     if (isAdmin) return;
@@ -295,27 +351,59 @@ export default function AdminRoles() {
   };
 
   const handleSave = () => {
-    setSavedPermissions((previous) => ({
-      ...previous,
-      [selectedRole]: { ...permissions[selectedRole] },
-    }));
+    try {
+      const updatedPermissions = normalizePermissions(permissions);
 
-    setNotification({
-      open: true,
-      message: `${currentRole.name} permissions saved successfully.`,
-      severity: "success",
-    });
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(updatedPermissions)
+      );
+
+      setPermissions(updatedPermissions);
+      setSavedPermissions(updatedPermissions);
+
+      setNotification({
+        open: true,
+        message: `${currentRole.name} permissions saved successfully.`,
+        severity: "success",
+      });
+    } catch {
+      setNotification({
+        open: true,
+        message: "Unable to save permissions. Please try again.",
+        severity: "error",
+      });
+    }
   };
 
   const handleReset = () => {
     setPermissions((previous) => ({
       ...previous,
-      [selectedRole]: { ...savedPermissions[selectedRole] },
+      [selectedRole]: {
+        ...savedPermissions[selectedRole],
+      },
     }));
 
     setNotification({
       open: true,
-      message: "Changes have been reset.",
+      message: "Unsaved changes have been discarded.",
+      severity: "info",
+    });
+  };
+
+  const handleRestoreDefaults = () => {
+    if (isAdmin) return;
+
+    setPermissions((previous) => ({
+      ...previous,
+      [selectedRole]: {
+        ...defaultPermissions[selectedRole],
+      },
+    }));
+
+    setNotification({
+      open: true,
+      message: "Default permissions restored. Save to apply them.",
       severity: "info",
     });
   };
@@ -393,6 +481,7 @@ export default function AdminRoles() {
             role={role}
             selected={selectedRole === role.id}
             onClick={() => setSelectedRole(role.id)}
+            usersCount={usersCountByRole[role.id] || 0}
           />
         ))}
       </Box>
@@ -413,41 +502,32 @@ export default function AdminRoles() {
             alignItems={{ xs: "flex-start", sm: "center" }}
             spacing={2}
           >
-            <Box>
-              <Stack
-                direction="row"
-                spacing={1}
-                alignItems="center"
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Avatar
+                sx={{
+                  bgcolor: currentRole.bg,
+                  color: currentRole.color,
+                  width: 38,
+                  height: 38,
+                }}
               >
-                <Avatar
-                  sx={{
-                    bgcolor: currentRole.bg,
-                    color: currentRole.color,
-                    width: 38,
-                    height: 38,
-                  }}
+                {currentRole.icon}
+              </Avatar>
+
+              <Box>
+                <Typography
+                  fontSize={17}
+                  fontWeight={800}
+                  color="#17365D"
                 >
-                  {currentRole.icon}
-                </Avatar>
+                  {currentRole.name} Permissions
+                </Typography>
 
-                <Box>
-                  <Typography
-                    fontSize={17}
-                    fontWeight={800}
-                    color="#17365D"
-                  >
-                    {currentRole.name} Permissions
-                  </Typography>
-
-                  <Typography
-                    fontSize={12}
-                    color="text.secondary"
-                  >
-                    Configure access for this role.
-                  </Typography>
-                </Box>
-              </Stack>
-            </Box>
+                <Typography fontSize={12} color="text.secondary">
+                  Configure access for this role.
+                </Typography>
+              </Box>
+            </Stack>
 
             <Chip
               label={`${enabledCount} / ${totalCount} Permissions Enabled`}
@@ -553,7 +633,7 @@ export default function AdminRoles() {
             variant="outlined"
             color="inherit"
             startIcon={<RestartAltRounded />}
-            onClick={handleReset}
+            onClick={handleRestoreDefaults}
             disabled={isAdmin}
             sx={{
               borderRadius: 2,
@@ -561,14 +641,28 @@ export default function AdminRoles() {
               fontWeight: 700,
             }}
           >
-            Reset Changes
+            Restore Defaults
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="inherit"
+            onClick={handleReset}
+            disabled={isAdmin || !hasUnsavedChanges}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 700,
+            }}
+          >
+            Discard Changes
           </Button>
 
           <Button
             variant="contained"
             startIcon={<SaveOutlined />}
             onClick={handleSave}
-            disabled={isAdmin}
+            disabled={isAdmin || !hasUnsavedChanges}
             sx={{
               borderRadius: 2,
               textTransform: "none",

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import {
   Box,
   Card,
@@ -43,165 +44,9 @@ import {
   SecurityRounded,
 } from "@mui/icons-material";
 
-const initialLogs = [
-  {
-    id: 1,
-    user: "Ahmed Hassan",
-    email: "ahmed@smartworkspace.com",
-    role: "Admin",
-    action: "Create",
-    module: "Users",
-    description: "Created a new user account for Omar Ali.",
-    target: "Omar Ali",
-    date: "2026-11-21",
-    time: "09:15 AM",
-    ip: "192.168.1.10",
-  },
-  {
-    id: 2,
-    user: "Sara Ahmed",
-    email: "sara@smartworkspace.com",
-    role: "HR",
-    action: "Update",
-    module: "Employees",
-    description: "Updated employee information.",
-    target: "Mariam Mohamed",
-    date: "2026-11-21",
-    time: "09:42 AM",
-    ip: "192.168.1.15",
-  },
-  {
-    id: 3,
-    user: "Mohamed Eid",
-    email: "mohamed@smartworkspace.com",
-    role: "Team Leader",
-    action: "Update",
-    module: "Projects",
-    description: "Updated the progress of a project.",
-    target: "Website Redesign",
-    date: "2026-11-21",
-    time: "10:05 AM",
-    ip: "192.168.1.20",
-  },
-  {
-    id: 4,
-    user: "Ahmed Hassan",
-    email: "ahmed@smartworkspace.com",
-    role: "Admin",
-    action: "Delete",
-    module: "Users",
-    description: "Removed a user account from the system.",
-    target: "Inactive User",
-    date: "2026-11-21",
-    time: "10:30 AM",
-    ip: "192.168.1.10",
-  },
-  {
-    id: 5,
-    user: "Omar Ali",
-    email: "omar@smartworkspace.com",
-    role: "Member",
-    action: "Login",
-    module: "Authentication",
-    description: "Successfully logged into the system.",
-    target: "User Session",
-    date: "2026-11-21",
-    time: "11:00 AM",
-    ip: "192.168.1.25",
-  },
-  {
-    id: 6,
-    user: "Sara Ahmed",
-    email: "sara@smartworkspace.com",
-    role: "HR",
-    action: "Create",
-    module: "Payroll",
-    description: "Created a new payroll record.",
-    target: "November Payroll",
-    date: "2026-11-20",
-    time: "01:20 PM",
-    ip: "192.168.1.15",
-  },
-  {
-    id: 7,
-    user: "Ahmed Hassan",
-    email: "ahmed@smartworkspace.com",
-    role: "Admin",
-    action: "Update",
-    module: "Settings",
-    description: "Updated company working hours.",
-    target: "Company Settings",
-    date: "2026-11-20",
-    time: "02:10 PM",
-    ip: "192.168.1.10",
-  },
-  {
-    id: 8,
-    user: "Mohamed Eid",
-    email: "mohamed@smartworkspace.com",
-    role: "Team Leader",
-    action: "Create",
-    module: "Tasks",
-    description: "Created a new task inside a project.",
-    target: "Implement Login Page",
-    date: "2026-11-20",
-    time: "03:25 PM",
-    ip: "192.168.1.20",
-  },
-  {
-    id: 9,
-    user: "Omar Ali",
-    email: "omar@smartworkspace.com",
-    role: "Member",
-    action: "Login",
-    module: "Authentication",
-    description: "Successfully logged into the system.",
-    target: "User Session",
-    date: "2026-11-19",
-    time: "08:50 AM",
-    ip: "192.168.1.25",
-  },
-  {
-    id: 10,
-    user: "Sara Ahmed",
-    email: "sara@smartworkspace.com",
-    role: "HR",
-    action: "Update",
-    module: "Attendance",
-    description: "Updated an employee attendance record.",
-    target: "Ahmed Hassan",
-    date: "2026-11-19",
-    time: "10:15 AM",
-    ip: "192.168.1.15",
-  },
-  {
-    id: 11,
-    user: "Ahmed Hassan",
-    email: "ahmed@smartworkspace.com",
-    role: "Admin",
-    action: "Create",
-    module: "Roles & Permissions",
-    description: "Created a new permission configuration.",
-    target: "Team Leader Permissions",
-    date: "2026-11-18",
-    time: "11:40 AM",
-    ip: "192.168.1.10",
-  },
-  {
-    id: 12,
-    user: "Mohamed Eid",
-    email: "mohamed@smartworkspace.com",
-    role: "Team Leader",
-    action: "Delete",
-    module: "Tasks",
-    description: "Deleted an unnecessary task.",
-    target: "Old Testing Task",
-    date: "2026-11-18",
-    time: "02:35 PM",
-    ip: "192.168.1.20",
-  },
-];
+import { getAuditLogs } from "../../../utils/auditLogger";
 
+// Action Configuration
 const actionConfig = {
   Create: {
     color: "success",
@@ -229,6 +74,7 @@ const actionConfig = {
   },
 };
 
+// Statistics Card
 const StatCard = ({ title, value, icon, color, background }) => (
   <Card
     elevation={0}
@@ -239,7 +85,11 @@ const StatCard = ({ title, value, icon, color, background }) => (
     }}
   >
     <CardContent sx={{ p: 2.5 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+      >
         <Box>
           <Typography color="text.secondary" fontSize={13} fontWeight={500}>
             {title}
@@ -274,6 +124,7 @@ const StatCard = ({ title, value, icon, color, background }) => (
   </Card>
 );
 
+// Action Badge
 const ActionBadge = ({ action }) => {
   const config = actionConfig[action] || actionConfig.Login;
 
@@ -287,20 +138,25 @@ const ActionBadge = ({ action }) => {
         color: config.text,
         fontWeight: 600,
         borderRadius: "7px",
-        "& .MuiChip-icon": { color: config.text },
+        "& .MuiChip-icon": {
+          color: config.text,
+        },
       }}
     />
   );
 };
 
-const getInitials = (name) =>
+// Get User Initials
+const getInitials = (name = "") =>
   name
     .split(" ")
+    .filter(Boolean)
     .map((part) => part[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
 
+// User Avatar
 const UserAvatar = ({ name }) => (
   <Avatar
     sx={{
@@ -316,11 +172,15 @@ const UserAvatar = ({ name }) => (
   </Avatar>
 );
 
+// Details Row
 const DetailRow = ({ label, value }) => (
   <Box
     sx={{
       display: "grid",
-      gridTemplateColumns: { xs: "1fr", sm: "130px 1fr" },
+      gridTemplateColumns: {
+        xs: "1fr",
+        sm: "130px 1fr",
+      },
       gap: 1,
       py: 1.5,
     }}
@@ -341,33 +201,62 @@ const DetailRow = ({ label, value }) => (
 );
 
 export default function AuditLogs() {
-  const [logs] = useState(initialLogs);
+  // Audit Logs State
+  const [logs, setLogs] = useState(getAuditLogs);
+
+  // Filters
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("All");
   const [roleFilter, setRoleFilter] = useState("All");
   const [moduleFilter, setModuleFilter] = useState("All");
+
+  // Selected Log
   const [selectedLog, setSelectedLog] = useState(null);
+
+  // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(8);
+
+  // Snackbar
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
 
+  // Listen for New Audit Logs
+  useEffect(() => {
+    const updateLogs = () => {
+      setLogs(getAuditLogs());
+    };
+
+    window.addEventListener("auditLogsUpdated", updateLogs);
+
+    return () => {
+      window.removeEventListener("auditLogsUpdated", updateLogs);
+    };
+  }, []);
+
+  // Filter Logs
   const filteredLogs = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
     return logs.filter((log) => {
+      const searchableValues = [
+        log.user,
+        log.email,
+        log.description,
+        log.target,
+        log.module,
+      ];
+
       const matchesSearch =
         !normalizedSearch ||
-        [
-          log.user,
-          log.email,
-          log.description,
-          log.target,
-          log.module,
-        ].some((value) => value.toLowerCase().includes(normalizedSearch));
+        searchableValues.some((value) =>
+          String(value || "")
+            .toLowerCase()
+            .includes(normalizedSearch)
+        );
 
       const matchesAction =
         actionFilter === "All" || log.action === actionFilter;
@@ -387,11 +276,13 @@ export default function AuditLogs() {
     });
   }, [logs, search, actionFilter, roleFilter, moduleFilter]);
 
+  // Pagination
   const paginatedLogs = filteredLogs.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
 
+  // Statistics
   const stats = useMemo(
     () => ({
       total: logs.length,
@@ -402,6 +293,7 @@ export default function AuditLogs() {
     [logs]
   );
 
+  // Reset Filters
   const handleResetFilters = () => {
     setSearch("");
     setActionFilter("All");
@@ -410,6 +302,7 @@ export default function AuditLogs() {
     setPage(0);
   };
 
+  // Export CSV
   const handleExport = () => {
     if (filteredLogs.length === 0) {
       setSnackbar({
@@ -417,6 +310,7 @@ export default function AuditLogs() {
         message: "There are no records to export.",
         severity: "warning",
       });
+
       return;
     }
 
@@ -431,7 +325,6 @@ export default function AuditLogs() {
       "Target",
       "Date",
       "Time",
-      "IP Address",
     ];
 
     const escapeCSV = (value) =>
@@ -449,13 +342,15 @@ export default function AuditLogs() {
         log.target,
         log.date,
         log.time,
-        log.ip,
       ]
         .map(escapeCSV)
         .join(",")
     );
 
-    const csvContent = [headers.map(escapeCSV).join(","), ...rows].join("\n");
+    const csvContent = [
+      headers.map(escapeCSV).join(","),
+      ...rows,
+    ].join("\n");
 
     const blob = new Blob(["\uFEFF" + csvContent], {
       type: "text/csv;charset=utf-8;",
@@ -466,6 +361,7 @@ export default function AuditLogs() {
 
     link.href = url;
     link.download = "smart-workspace-audit-logs.csv";
+
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -479,22 +375,42 @@ export default function AuditLogs() {
     });
   };
 
+  // Close Snackbar
+  const handleCloseSnackbar = (_, reason) => {
+    if (reason === "clickaway") return;
+
+    setSnackbar((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
   return (
     <Box
       sx={{
         width: "100%",
         maxWidth: "none",
         boxSizing: "border-box",
-        p: { xs: 2, sm: 2.5, md: 3 },
+        p: {
+          xs: 2,
+          sm: 2.5,
+          md: 3,
+        },
         bgcolor: "#F5F7FB",
         minHeight: "100%",
       }}
     >
       {/* Header */}
       <Stack
-        direction={{ xs: "column", sm: "row" }}
+        direction={{
+          xs: "column",
+          sm: "row",
+        }}
         justifyContent="space-between"
-        alignItems={{ xs: "flex-start", sm: "center" }}
+        alignItems={{
+          xs: "flex-start",
+          sm: "center",
+        }}
         spacing={2}
         mb={3}
       >
@@ -503,7 +419,12 @@ export default function AuditLogs() {
             variant="h4"
             fontWeight={700}
             color="#17365D"
-            sx={{ fontSize: { xs: 25, md: 30 } }}
+            sx={{
+              fontSize: {
+                xs: 25,
+                md: 30,
+              },
+            }}
           >
             Audit Logs
           </Typography>
@@ -524,7 +445,9 @@ export default function AuditLogs() {
             fontWeight: 600,
             px: 2.5,
             py: 1.1,
-            "&:hover": { bgcolor: "#1D4ED8" },
+            "&:hover": {
+              bgcolor: "#1D4ED8",
+            },
           }}
         >
           Export CSV
@@ -586,13 +509,23 @@ export default function AuditLogs() {
           overflow: "hidden",
         }}
       >
+        {/* Table Header */}
         <Box
           sx={{
-            p: { xs: 2, md: 2.5 },
+            p: {
+              xs: 2,
+              md: 2.5,
+            },
             display: "flex",
-            flexDirection: { xs: "column", md: "row" },
+            flexDirection: {
+              xs: "column",
+              md: "row",
+            },
             justifyContent: "space-between",
-            alignItems: { xs: "flex-start", md: "center" },
+            alignItems: {
+              xs: "flex-start",
+              md: "center",
+            },
             gap: 2,
           }}
         >
@@ -626,7 +559,10 @@ export default function AuditLogs() {
         {/* Filters */}
         <Box
           sx={{
-            p: { xs: 2, md: 2.5 },
+            p: {
+              xs: 2,
+              md: 2.5,
+            },
             display: "grid",
             gridTemplateColumns: {
               xs: "1fr",
@@ -637,6 +573,7 @@ export default function AuditLogs() {
             alignItems: "center",
           }}
         >
+          {/* Search */}
           <TextField
             fullWidth
             size="small"
@@ -647,7 +584,9 @@ export default function AuditLogs() {
               setPage(0);
             }}
             sx={{
-              "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+              },
             }}
             InputProps={{
               startAdornment: (
@@ -658,6 +597,7 @@ export default function AuditLogs() {
             }}
           />
 
+          {/* Action Filter */}
           <TextField
             select
             fullWidth
@@ -669,7 +609,9 @@ export default function AuditLogs() {
               setPage(0);
             }}
             sx={{
-              "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+              },
             }}
           >
             <MenuItem value="All">All Actions</MenuItem>
@@ -679,6 +621,7 @@ export default function AuditLogs() {
             <MenuItem value="Login">Login</MenuItem>
           </TextField>
 
+          {/* Role Filter */}
           <TextField
             select
             fullWidth
@@ -690,7 +633,9 @@ export default function AuditLogs() {
               setPage(0);
             }}
             sx={{
-              "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+              },
             }}
           >
             <MenuItem value="All">All Roles</MenuItem>
@@ -700,6 +645,7 @@ export default function AuditLogs() {
             <MenuItem value="Member">Member</MenuItem>
           </TextField>
 
+          {/* Module Filter */}
           <TextField
             select
             fullWidth
@@ -711,17 +657,27 @@ export default function AuditLogs() {
               setPage(0);
             }}
             sx={{
-              "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "10px",
+              },
             }}
           >
             <MenuItem value="All">All Modules</MenuItem>
-            {[...new Set(logs.map((log) => log.module))].map((module) => (
+
+            {[
+              ...new Set(
+                logs
+                  .map((log) => log.module)
+                  .filter(Boolean)
+              ),
+            ].map((module) => (
               <MenuItem key={module} value={module}>
                 {module}
               </MenuItem>
             ))}
           </TextField>
 
+          {/* Reset Filters */}
           <Tooltip title="Reset Filters">
             <IconButton
               onClick={handleResetFilters}
@@ -773,11 +729,18 @@ export default function AuditLogs() {
                   key={log.id}
                   hover
                   sx={{
-                    "&:last-child td": { borderBottom: 0 },
+                    "&:last-child td": {
+                      borderBottom: 0,
+                    },
                   }}
                 >
+                  {/* User */}
                   <TableCell sx={{ py: 1.8 }}>
-                    <Stack direction="row" spacing={1.2} alignItems="center">
+                    <Stack
+                      direction="row"
+                      spacing={1.2}
+                      alignItems="center"
+                    >
                       <UserAvatar name={log.user} />
 
                       <Box>
@@ -787,20 +750,22 @@ export default function AuditLogs() {
                           color="#17365D"
                           whiteSpace="nowrap"
                         >
-                          {log.user}
+                          {log.user || "Unknown User"}
                         </Typography>
 
                         <Typography fontSize={11} color="text.secondary">
-                          {log.role}
+                          {log.role || "—"}
                         </Typography>
                       </Box>
                     </Stack>
                   </TableCell>
 
+                  {/* Action */}
                   <TableCell>
                     <ActionBadge action={log.action} />
                   </TableCell>
 
+                  {/* Module */}
                   <TableCell>
                     <Typography
                       fontSize={12}
@@ -808,10 +773,11 @@ export default function AuditLogs() {
                       color="#475569"
                       whiteSpace="nowrap"
                     >
-                      {log.module}
+                      {log.module || "—"}
                     </Typography>
                   </TableCell>
 
+                  {/* Description */}
                   <TableCell sx={{ maxWidth: 260 }}>
                     <Typography
                       fontSize={12}
@@ -822,20 +788,26 @@ export default function AuditLogs() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {log.description}
+                      {log.description || "—"}
                     </Typography>
                   </TableCell>
 
+                  {/* Date & Time */}
                   <TableCell>
-                    <Typography fontSize={12} color="#17365D" fontWeight={600}>
-                      {log.date}
+                    <Typography
+                      fontSize={12}
+                      color="#17365D"
+                      fontWeight={600}
+                    >
+                      {log.date || "—"}
                     </Typography>
 
                     <Typography fontSize={11} color="text.secondary">
-                      {log.time}
+                      {log.time || "—"}
                     </Typography>
                   </TableCell>
 
+                  {/* Details */}
                   <TableCell>
                     <Tooltip title="View Details">
                       <IconButton
@@ -844,7 +816,9 @@ export default function AuditLogs() {
                         sx={{
                           color: "#2563EB",
                           bgcolor: "#EFF6FF",
-                          "&:hover": { bgcolor: "#DBEAFE" },
+                          "&:hover": {
+                            bgcolor: "#DBEAFE",
+                          },
                         }}
                       >
                         <VisibilityRounded fontSize="small" />
@@ -854,12 +828,17 @@ export default function AuditLogs() {
                 </TableRow>
               ))}
 
+              {/* Empty State */}
               {paginatedLogs.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6}>
                     <Box py={6} textAlign="center">
                       <HistoryRounded
-                        sx={{ fontSize: 42, color: "#CBD5E1", mb: 1 }}
+                        sx={{
+                          fontSize: 42,
+                          color: "#CBD5E1",
+                          mb: 1,
+                        }}
                       />
 
                       <Typography fontWeight={600} color="#475569">
@@ -871,7 +850,9 @@ export default function AuditLogs() {
                         color="text.secondary"
                         mt={0.5}
                       >
-                        Try changing your search or filters.
+                        {logs.length === 0
+                          ? "No activities have been recorded yet."
+                          : "Try changing your search or filters."}
                       </Typography>
                     </Box>
                   </TableCell>
@@ -883,6 +864,7 @@ export default function AuditLogs() {
 
         <Divider />
 
+        {/* Pagination */}
         <TablePagination
           component="div"
           count={filteredLogs.length}
@@ -897,7 +879,10 @@ export default function AuditLogs() {
           sx={{
             "& .MuiTablePagination-toolbar": {
               minHeight: 58,
-              px: { xs: 1, sm: 2 },
+              px: {
+                xs: 1,
+                sm: 2,
+              },
             },
             "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
               {
@@ -915,24 +900,41 @@ export default function AuditLogs() {
         fullWidth
         maxWidth="sm"
         PaperProps={{
-          sx: { borderRadius: "16px" },
+          sx: {
+            borderRadius: "16px",
+          },
         }}
       >
         {selectedLog && (
           <>
             <DialogTitle sx={{ p: 2.5 }}>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+              >
                 <Box>
-                  <Typography fontWeight={700} color="#17365D" fontSize={19}>
+                  <Typography
+                    fontWeight={700}
+                    color="#17365D"
+                    fontSize={19}
+                  >
                     Activity Details
                   </Typography>
 
-                  <Typography color="text.secondary" fontSize={12} mt={0.5}>
+                  <Typography
+                    color="text.secondary"
+                    fontSize={12}
+                    mt={0.5}
+                  >
                     Audit record #{selectedLog.id}
                   </Typography>
                 </Box>
 
-                <IconButton onClick={() => setSelectedLog(null)} size="small">
+                <IconButton
+                  onClick={() => setSelectedLog(null)}
+                  size="small"
+                >
                   <CloseRounded />
                 </IconButton>
               </Stack>
@@ -941,20 +943,31 @@ export default function AuditLogs() {
             <Divider />
 
             <DialogContent sx={{ p: 2.5 }}>
-              <Stack direction="row" alignItems="center" spacing={1.5} mb={2}>
+              {/* User Information */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1.5}
+                mb={2}
+              >
                 <UserAvatar name={selectedLog.user} />
 
                 <Box>
-                  <Typography fontWeight={700} color="#17365D" fontSize={14}>
-                    {selectedLog.user}
+                  <Typography
+                    fontWeight={700}
+                    color="#17365D"
+                    fontSize={14}
+                  >
+                    {selectedLog.user || "Unknown User"}
                   </Typography>
 
                   <Typography fontSize={12} color="text.secondary">
-                    {selectedLog.email}
+                    {selectedLog.email || "—"}
                   </Typography>
                 </Box>
               </Stack>
 
+              {/* Action & Role */}
               <Box
                 sx={{
                   display: "flex",
@@ -966,7 +979,7 @@ export default function AuditLogs() {
                 <ActionBadge action={selectedLog.action} />
 
                 <Chip
-                  label={selectedLog.role}
+                  label={selectedLog.role || "Unknown Role"}
                   size="small"
                   variant="outlined"
                   sx={{ fontWeight: 600 }}
@@ -975,25 +988,38 @@ export default function AuditLogs() {
 
               <Divider />
 
-              <DetailRow label="Module" value={selectedLog.module} />
+              <DetailRow
+                label="Module"
+                value={selectedLog.module}
+              />
+
               <Divider />
 
-              <DetailRow label="Target" value={selectedLog.target} />
+              <DetailRow
+                label="Target"
+                value={selectedLog.target}
+              />
+
               <Divider />
 
               <DetailRow
                 label="Description"
                 value={selectedLog.description}
               />
+
               <Divider />
 
-              <DetailRow label="Date" value={selectedLog.date} />
+              <DetailRow
+                label="Date"
+                value={selectedLog.date}
+              />
+
               <Divider />
 
-              <DetailRow label="Time" value={selectedLog.time} />
-              <Divider />
-
-              <DetailRow label="IP Address" value={selectedLog.ip} />
+              <DetailRow
+                label="Time"
+                value={selectedLog.time}
+              />
             </DialogContent>
 
             <DialogActions sx={{ p: 2.5, pt: 0 }}>
@@ -1005,7 +1031,9 @@ export default function AuditLogs() {
                   textTransform: "none",
                   bgcolor: "#2563EB",
                   px: 3,
-                  "&:hover": { bgcolor: "#1D4ED8" },
+                  "&:hover": {
+                    bgcolor: "#1D4ED8",
+                  },
                 }}
               >
                 Close
@@ -1015,26 +1043,30 @@ export default function AuditLogs() {
         )}
       </Dialog>
 
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3500}
-        onClose={() =>
-          setSnackbar((prev) => ({ ...prev, open: false }))
-        }
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
       >
         <Alert
           severity={snackbar.severity}
           variant="filled"
-          onClose={() =>
-            setSnackbar((prev) => ({ ...prev, open: false }))
-          }
-          sx={{ borderRadius: "10px" }}
+          onClose={handleCloseSnackbar}
+          sx={{
+            borderRadius: "10px",
+            width: "100%",
+          }}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
 
+      {/* Footer */}
       <Typography
         fontSize={11}
         color="text.secondary"
