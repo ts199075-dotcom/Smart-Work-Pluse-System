@@ -45,8 +45,11 @@ export const navigationConfig = {
     { label: "Dashboard", path: "/dashboard" },
     { label: "Users", path: "/users" },
     { label: "Roles & Permissions", path: "/roles" },
+    { label: "Projects Overview", path: "/projects" },
+    { label: "Company Analytics", path: "/analytics" },
     { label: "Company Settings", path: "/settings" },
     { label: "Audit Logs", path: "/audit-logs" },
+    { label: "Notifications", path: "/notifications" },
   ],
 };
 

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -32,6 +31,9 @@ import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints"
 import HRDashboard from "./features/hr/dashboard/HRDashboard";
 import HREmployees from "./features/hr/employee/HREmployees";
 
+// Admin Pages
+import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
+
 // Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
 
@@ -41,7 +43,7 @@ import {
 } from "./config/navigation";
 
 // Temporary role until authentication is implemented
-const CURRENT_ROLE = USER_ROLES.HR;
+const CURRENT_ROLE = USER_ROLES.ADMIN;
 const CURRENT_TEAM_LEADER = "Sara Ahmed";
 
 function getPageByRole(
@@ -133,6 +135,27 @@ function getPageByRole(
 
       case "/notifications":
         return <Notifications role={role} />;
+
+      default:
+        return <PlaceholderPage title={label} />;
+    }
+  }
+
+  if (role === USER_ROLES.ADMIN) {
+    switch (path) {
+      case "/dashboard":
+       return <AdminDashboard projects={projects} />;
+
+      case "/notifications":
+        return <Notifications role={role} />;
+
+      case "/users":
+      case "/roles":
+      case "/projects":
+      case "/analytics":
+      case "/settings":
+      case "/audit-logs":
+        return <PlaceholderPage title={label} />;
 
       default:
         return <PlaceholderPage title={label} />;
