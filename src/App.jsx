@@ -38,6 +38,8 @@ import AdminRoles from "./features/admin/roles/AdminRoles";
 import AdminProjects from "./features/admin/projects/AdminProjects";
 import CompanyAnalytics from "./features/admin/analytics/CompanyAnalytics";
 import CompanySettings from "./features/admin/settings/CompanySettings";
+import AuditLogs from "./features/admin/audit-logs/AuditLogs";
+
 
 // Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
@@ -170,7 +172,7 @@ function getPageByRole(
         return <Notifications role={role} />;
 
       case "/audit-logs":
-        return <PlaceholderPage title={label} />;
+        return <AuditLogs />;
 
       default:
         return <PlaceholderPage title={label} />;
