@@ -33,6 +33,7 @@ import HREmployees from "./features/hr/employee/HREmployees";
 
 // Admin Pages
 import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
+import AdminUsers from "./features/admin/users/AdminUsers";
 
 // Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
@@ -144,12 +145,14 @@ function getPageByRole(
   if (role === USER_ROLES.ADMIN) {
     switch (path) {
       case "/dashboard":
-       return <AdminDashboard projects={projects} />;
+        return <AdminDashboard projects={projects} />;
+      
+      case "/users":
+        return <AdminUsers />; 
 
       case "/notifications":
         return <Notifications role={role} />;
 
-      case "/users":
       case "/roles":
       case "/projects":
       case "/analytics":
