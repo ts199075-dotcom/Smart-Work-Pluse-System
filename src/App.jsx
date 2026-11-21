@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -31,6 +30,13 @@ import TeamLeaderSprints from "./features/team-leader/sprints/TeamLeaderSprints"
 // HR Pages
 import HRDashboard from "./features/hr/dashboard/HRDashboard";
 import HREmployees from "./features/hr/employee/HREmployees";
+import HRAttendance from "./features/hr/attendance/HRAttendance";
+import HROvertime from "./features/hr/overtime/HROvertime";
+import HRPayroll from "./features/hr/payroll/HRPayroll";
+import HRLeaves from "./features/hr/leaves/HRLeaves";
+import HRFinesRewards from "./features/hr/fines-rewards/HRFinesRewards";
+import HRReports from "./features/hr/reports/HRReports";
+import HRNotifications from "./features/hr/notifications/HRNotifications";
 
 // Team Leader Projects Data
 import { initialProjects } from "./features/team-leader/projects/projectsData";
@@ -131,8 +137,26 @@ function getPageByRole(
       case "/employees":
         return <HREmployees />;
 
+      case "/attendance":
+        return <HRAttendance />;
+
+      case "/overtime":
+        return <HROvertime />;
+
+      case "/payroll":
+        return <HRPayroll />;
+
+      case "/leaves":
+        return <HRLeaves />;
+
+      case "/fines-rewards":
+        return <HRFinesRewards />;
+
+      case "/reports":
+        return <HRReports />;
+
       case "/notifications":
-        return <Notifications role={role} />;
+        return <HRNotifications />;
 
       default:
         return <PlaceholderPage title={label} />;
