@@ -24,7 +24,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Avatar,
   Stack,
 } from "@mui/material";
 
@@ -35,6 +34,7 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import Cancel from "@mui/icons-material/Cancel";
 import Visibility from "@mui/icons-material/Visibility";
 import Close from "@mui/icons-material/Close";
+import StatCard from "../../../components/common/StatCard";
 
 const initialLeaves = [
   {
@@ -122,48 +122,48 @@ const statusColors = {
   Rejected: "error",
 };
 
-function StatCard({ title, value, icon, color, subtitle }) {
-  return (
-    <Card
-      sx={{
-        height: "100%",
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        boxShadow: "none",
-      }}
-    >
-      <CardContent>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography color="text.secondary" variant="body2">
-              {title}
-            </Typography>
+// function StatCard({ title, value, icon, color, subtitle }) {
+//   return (
+//     <Card
+//       sx={{
+//         height: "100%",
+//         borderRadius: 3,
+//         border: "1px solid",
+//         borderColor: "divider",
+//         boxShadow: "none",
+//       }}
+//     >
+//       <CardContent>
+//         <Stack direction="row" justifyContent="space-between" alignItems="center">
+//           <Box>
+//             <Typography color="text.secondary" variant="body2">
+//               {title}
+//             </Typography>
 
-            <Typography variant="h4" fontWeight={700} mt={1}>
-              {value}
-            </Typography>
+//             <Typography variant="h4" fontWeight={700} mt={1}>
+//               {value}
+//             </Typography>
 
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </Box>
+//             <Typography variant="caption" color="text.secondary">
+//               {subtitle}
+//             </Typography>
+//           </Box>
 
-          <Avatar
-            sx={{
-              width: 52,
-              height: 52,
-              bgcolor: `${color}15`,
-              color: color,
-            }}
-          >
-            {icon}
-          </Avatar>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
+//           <Avatar
+//             sx={{
+//               width: 52,
+//               height: 52,
+//               bgcolor: `${color}15`,
+//               color: color,
+//             }}
+//           >
+//             {icon}
+//           </Avatar>
+//         </Stack>
+//       </CardContent>
+//     </Card>
+//   );
+// }
 
 export default function HRLeaves() {
   const [leaves, setLeaves] = useState(initialLeaves);

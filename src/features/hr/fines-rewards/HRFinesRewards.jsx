@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 
 import { useMemo, useState } from "react";
 
@@ -37,6 +38,7 @@ import Payments from "@mui/icons-material/Payments";
 import Visibility from "@mui/icons-material/Visibility";
 import Delete from "@mui/icons-material/Delete";
 import Close from "@mui/icons-material/Close";
+import StatCard from "../../../components/common/StatCard";
 
 const initialRecords = [
   {
@@ -110,52 +112,52 @@ const departments = [
   "Operations",
 ];
 
-function StatCard({ title, value, icon, color, subtitle }) {
-  return (
-    <Card
-      sx={{
-        height: "100%",
-        borderRadius: 3,
-        boxShadow: "none",
-        border: "1px solid",
-        borderColor: "divider",
-      }}
-    >
-      <CardContent>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Box>
-            <Typography color="text.secondary" variant="body2">
-              {title}
-            </Typography>
+// function StatCard({ title, value, icon, color, subtitle }) {
+//   return (
+//     <Card
+//       sx={{
+//         height: "100%",
+//         borderRadius: 3,
+//         boxShadow: "none",
+//         border: "1px solid",
+//         borderColor: "divider",
+//       }}
+//     >
+//       <CardContent>
+//         <Stack
+//           direction="row"
+//           justifyContent="space-between"
+//           alignItems="center"
+//         >
+//           <Box>
+//             <Typography color="text.secondary" variant="body2">
+//               {title}
+//             </Typography>
 
-            <Typography variant="h4" fontWeight={700} mt={1}>
-              {value.toLocaleString("en-US")} EGP
-            </Typography>
+//             <Typography variant="h4" fontWeight={700} mt={1}>
+//               {value.toLocaleString("en-US")} EGP
+//             </Typography>
 
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </Box>
+//             <Typography variant="caption" color="text.secondary">
+//               {subtitle}
+//             </Typography>
+//           </Box>
 
-          <Avatar
-            sx={{
-              width: 52,
-              height: 52,
-              bgcolor: `${color}15`,
-              color,
-            }}
-          >
-            {icon}
-          </Avatar>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
+//           <Avatar
+//             sx={{
+//               width: 52,
+//               height: 52,
+//               bgcolor: `${color}15`,
+//               color,
+//             }}
+//           >
+//             {icon}
+//           </Avatar>
+//         </Stack>
+//       </CardContent>
+//     </Card>
+//   );
+// }
 
 const emptyForm = {
   employee: "",
@@ -303,6 +305,7 @@ export default function HRFinesRewards() {
           <StatCard
             title="Total Rewards"
             value={totalRewards}
+            valueFormatter={(value) => `${value.toLocaleString("en-US")} EGP`}
             icon={<EmojiEvents />}
             color="#10b981"
             subtitle={`${rewardsCount} reward records`}
@@ -313,6 +316,7 @@ export default function HRFinesRewards() {
           <StatCard
             title="Total Fines"
             value={totalFines}
+            valueFormatter={(value) => `${value.toLocaleString("en-US")} EGP`}
             icon={<Gavel />}
             color="#ef4444"
             subtitle={`${finesCount} fine records`}
@@ -323,6 +327,7 @@ export default function HRFinesRewards() {
           <StatCard
             title="Net Amount"
             value={totalRewards - totalFines}
+            valueFormatter={(value) => `${value.toLocaleString("en-US")} EGP`}
             icon={<Payments />}
             color="#6366f1"
             subtitle="Rewards minus fines"
@@ -333,6 +338,7 @@ export default function HRFinesRewards() {
           <StatCard
             title="Total Records"
             value={records.length}
+            valueFormatter={(value) => `${value.toLocaleString("en-US")} EGP`}
             icon={<Payments />}
             color="#f59e0b"
             subtitle="All transactions"
