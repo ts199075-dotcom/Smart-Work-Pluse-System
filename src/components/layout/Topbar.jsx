@@ -10,6 +10,7 @@ import {
   Badge,
   Breadcrumbs,
   Link,
+  Tooltip,
 } from "@mui/material";
 
 import {
@@ -17,6 +18,7 @@ import {
   NotificationsNoneRounded,
   NavigateNextRounded,
   MenuRounded,
+  LogoutRounded,
 } from "@mui/icons-material";
 
 import {
@@ -26,16 +28,19 @@ import {
 } from "react-router-dom";
 
 import { getNavigationByRole } from "../../config/navigation";
+import { useAuth } from "../../contexts/AuthContext";
 
 const ROLE_LABELS = {
   member: "Member",
   "team-leader": "Team Leader",
   hr: "HR",
   admin: "Admin",
+  finance: "Finance",
 };
 
 function Topbar({
   userName = "User",
+  userEmail = "",
   role = "member",
   userInitials = "U",
   onMenuClick,
@@ -43,8 +48,9 @@ function Topbar({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const userRole = ROLE_LABELS[role] || role;
+  const { logout } = useAuth();
 
+  const userRole = ROLE_LABELS[role] || role;
   const navigationItems = getNavigationByRole(role);
 
   const currentPage = navigationItems.find(
@@ -65,6 +71,11 @@ function Topbar({
 
   const handleNotificationsClick = () => {
     navigate("/notifications");
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -223,10 +234,33 @@ function Topbar({
               </Typography>
 
               <Typography fontSize={11} color="text.secondary">
-                {userRole}
+                {userEmail || userRole}
               </Typography>
+
+              {userEmail && (
+                <Typography fontSize={10} color="text.secondary">
+                  {userRole}
+                </Typography>
+              )}
             </Box>
           </Box>
+
+          {/* Logout */}
+          <Tooltip title="Logout">
+            <IconButton
+              onClick={handleLogout}
+              aria-label="Logout"
+              sx={{
+                color: "#DC2626",
+                ml: { xs: 0, md: 0.5 },
+                "&:hover": {
+                  backgroundColor: "#FEE2E2",
+                },
+              }}
+            >
+              <LogoutRounded />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Toolbar>
     </AppBar>

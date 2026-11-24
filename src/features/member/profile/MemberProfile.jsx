@@ -1,141 +1,143 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Alert,
   Avatar,
   Box,
-  Button,
   Card,
   CardContent,
   Chip,
+  CircularProgress,
   Divider,
   Grid,
   Stack,
-  TextField,
   Typography,
-  Snackbar,
 } from "@mui/material";
 
 import {
-  EditRounded,
-  SaveRounded,
-  CloseRounded,
   PersonRounded,
   EmailRounded,
   PhoneRounded,
-  WorkRounded,
   BusinessRounded,
-  CalendarMonthRounded,
+  LocationCityRounded,
   BadgeRounded,
-  VerifiedUserRounded,
+  PaymentsRounded,
+  WcRounded,
+  SupervisorAccountRounded,
 } from "@mui/icons-material";
 
-import { useAppData } from "../../../hooks/useAppData";
-
-const CURRENT_MEMBER_ID = 1;
+import { getMyProfile } from "../../../services/profileService";
+import { useAuth } from "../../../contexts/AuthContext";
 
 function MemberProfile() {
-  const { employees, setEmployees } = useAppData();
+  const { user } = useAuth();
 
-  const employee = employees.find(
-    (item) => item.id === CURRENT_MEMBER_ID
-  );
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [phone, setPhone] = useState(employee?.phone || "");
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
+        const data = await getMyProfile();
 
-  if (!employee) {
+        setProfile(data);
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+        setError(
+          err.message || "Failed to load profile information."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const getValue = (value) => {
+    if (value === null || value === undefined || value === "") {
+      return "Not available";
+    }
+
+    return value;
+  };
+
+  const getInitials = (name) => {
+    if (!name) return "U";
+
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  };
+
+  const getRoleLabel = (role) => {
+    const roles = {
+      admin: "Admin",
+      member: "Employee",
+      "team-leader": "Manager",
+      hr: "HR",
+      finance: "Finance",
+    };
+
+    return roles[role] || role || "User";
+  };
+
+  const getGenderLabel = (gender) => {
+    if (gender === 0 || gender === "0") return "Male";
+    if (gender === 1 || gender === "1") return "Female";
+
+    return getValue(gender);
+  };
+
+  if (loading) {
     return (
-      <Box p={3}>
-        <Typography>Employee information not found.</Typography>
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
+        <CircularProgress />
       </Box>
     );
   }
 
-  const initials = employee.name
-    .split(" ")
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  const formatDate = (date) => {
-    if (!date) return "Not available";
-
-    return new Date(`${date}T00:00:00`).toLocaleDateString(
-      "en-US",
-      {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
     );
-  };
+  }
 
-  const handleEdit = () => {
-    setPhone(employee.phone || "");
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setPhone(employee.phone || "");
-    setIsEditing(false);
-  };
-
-  const handleSave = () => {
-    const trimmedPhone = phone.trim();
-
-    if (!trimmedPhone) {
-      setSnackbar({
-        open: true,
-        message: "Phone number cannot be empty.",
-        severity: "error",
-      });
-      return;
-    }
-
-    if (!/^[0-9+\-\s]{8,15}$/.test(trimmedPhone)) {
-      setSnackbar({
-        open: true,
-        message: "Please enter a valid phone number.",
-        severity: "error",
-      });
-      return;
-    }
-
-    setEmployees((prevEmployees) =>
-      prevEmployees.map((item) =>
-        item.id === CURRENT_MEMBER_ID
-          ? { ...item, phone: trimmedPhone }
-          : item
-      )
+  if (!profile) {
+    return (
+      <Box p={3}>
+        <Alert severity="warning">
+          Profile information not found.
+        </Alert>
+      </Box>
     );
+  }
 
-    setIsEditing(false);
-
-    setSnackbar({
-      open: true,
-      message: "Profile updated successfully.",
-      severity: "success",
-    });
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "success";
-      case "On Leave":
-        return "warning";
-      default:
-        return "default";
-    }
-  };
+  // ASP.NET Core may serialize these properties using camelCase.
+  const fullName = profile.fullName ?? profile.FullName;
+  const email = profile.email ?? profile.Email;
+  const phone = profile.phone ?? profile.Phone;
+  const department = profile.department ?? profile.Department;
+  const city = profile.city ?? profile.City;
+  const governorate = profile.gavernate ?? profile.Gavernate;
+  const gender = profile.gender ?? profile.Gender;
+  const basicSalary = profile.basicSalary ?? profile.BasicSalary;
+  const managerId = profile.managerId ?? profile.ManagerId;
 
   const infoSections = [
     {
@@ -144,45 +146,63 @@ function MemberProfile() {
       fields: [
         {
           label: "Full Name",
-          value: employee.name,
+          value: fullName,
           icon: <PersonRounded />,
         },
         {
           label: "Email Address",
-          value: employee.email,
+          value: email,
           icon: <EmailRounded />,
         },
         {
           label: "Phone Number",
-          value: employee.phone,
+          value: phone,
           icon: <PhoneRounded />,
-          editable: true,
+        },
+        {
+          label: "Gender",
+          value: getGenderLabel(gender),
+          icon: <WcRounded />,
         },
       ],
     },
     {
       title: "Employment Information",
-      description: "Your current position and company details.",
+      description: "Your current employment details.",
       fields: [
         {
-          label: "Employee ID",
-          value: `EMP-${String(employee.id).padStart(3, "0")}`,
-          icon: <BadgeRounded />,
-        },
-        {
-          label: "Job Position",
-          value: employee.position,
-          icon: <WorkRounded />,
-        },
-        {
           label: "Department",
-          value: employee.department,
+          value: department,
           icon: <BusinessRounded />,
         },
         {
-          label: "Join Date",
-          value: formatDate(employee.joinDate),
-          icon: <CalendarMonthRounded />,
+          label: "Basic Salary",
+          value:
+            basicSalary !== null && basicSalary !== undefined
+              ? `${Number(basicSalary).toLocaleString("en-US")} EGP`
+              : "Not available",
+          icon: <PaymentsRounded />,
+        },
+        {
+          label: "Manager ID",
+          value: managerId,
+          icon: <SupervisorAccountRounded />,
+        },
+      ],
+    },
+    {
+      title: "Location Information",
+      description: "Your registered location details.",
+      fields: [
+        {
+          label: "Governorate",
+          value: governorate,
+          icon: <LocationCityRounded />,
+        },
+        {
+          label: "City",
+          value: city,
+          icon: <LocationCityRounded />,
         },
       ],
     },
@@ -191,52 +211,14 @@ function MemberProfile() {
   return (
     <Box>
       {/* Page Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            My Profile
-          </Typography>
+      <Box mb={3}>
+        <Typography variant="h4" fontWeight={700}>
+          My Profile
+        </Typography>
 
-          <Typography color="text.secondary" mt={0.5}>
-            Manage your personal and employment information.
-          </Typography>
-        </Box>
-
-        {!isEditing ? (
-          <Button
-            variant="contained"
-            startIcon={<EditRounded />}
-            onClick={handleEdit}
-          >
-            Edit Profile
-          </Button>
-        ) : (
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              color="inherit"
-              startIcon={<CloseRounded />}
-              onClick={handleCancel}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              variant="contained"
-              startIcon={<SaveRounded />}
-              onClick={handleSave}
-            >
-              Save Changes
-            </Button>
-          </Stack>
-        )}
+        <Typography color="text.secondary" mt={0.5}>
+          View your personal and employment information.
+        </Typography>
       </Box>
 
       {/* Profile Hero */}
@@ -251,7 +233,6 @@ function MemberProfile() {
         <Box
           sx={{
             height: 110,
-            bgcolor: "primary.main",
             background:
               "linear-gradient(110deg, #1976d2 0%, #42a5f5 100%)",
           }}
@@ -275,7 +256,7 @@ function MemberProfile() {
                 borderColor: "background.paper",
               }}
             >
-              {initials}
+              {getInitials(fullName)}
             </Avatar>
 
             <Box
@@ -284,33 +265,20 @@ function MemberProfile() {
               pb={1}
             >
               <Typography variant="h5" fontWeight={700}>
-                {employee.name}
+                {getValue(fullName)}
               </Typography>
 
               <Typography color="text.secondary" mt={0.5}>
-                {employee.position}
+                {getValue(department)}
               </Typography>
             </Box>
 
-            <Stack
-              direction="row"
-              spacing={1}
-              alignItems="center"
-              pb={1}
-            >
-              <Chip
-                icon={<VerifiedUserRounded />}
-                label={employee.status}
-                color={getStatusColor(employee.status)}
-                size="small"
-              />
-
-              <Chip
-                label={employee.role}
-                variant="outlined"
-                size="small"
-              />
-            </Stack>
+            <Chip
+              icon={<BadgeRounded />}
+              label={getRoleLabel(user?.role)}
+              variant="outlined"
+              size="small"
+            />
           </Stack>
         </CardContent>
       </Card>
@@ -347,7 +315,7 @@ function MemberProfile() {
                       item
                       xs={12}
                       sm={6}
-                      md={section.fields.length === 3 ? 4 : 3}
+                      md={4}
                       key={field.label}
                     >
                       <Stack
@@ -373,24 +341,12 @@ function MemberProfile() {
                         </Typography>
                       </Stack>
 
-                      {field.editable && isEditing ? (
-                        <TextField
-                          fullWidth
-                          size="small"
-                          value={phone}
-                          onChange={(event) =>
-                            setPhone(event.target.value)
-                          }
-                          placeholder="Enter phone number"
-                        />
-                      ) : (
-                        <Typography
-                          fontWeight={600}
-                          sx={{ overflowWrap: "anywhere" }}
-                        >
-                          {field.value || "Not available"}
-                        </Typography>
-                      )}
+                      <Typography
+                        fontWeight={600}
+                        sx={{ overflowWrap: "anywhere" }}
+                      >
+                        {getValue(field.value)}
+                      </Typography>
                     </Grid>
                   ))}
                 </Grid>
@@ -399,30 +355,6 @@ function MemberProfile() {
           </Grid>
         ))}
       </Grid>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={3500}
-        onClose={() =>
-          setSnackbar((prev) => ({
-            ...prev,
-            open: false,
-          }))
-        }
-      >
-        <Alert
-          severity={snackbar.severity}
-          onClose={() =>
-            setSnackbar((prev) => ({
-              ...prev,
-              open: false,
-            }))
-          }
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 }

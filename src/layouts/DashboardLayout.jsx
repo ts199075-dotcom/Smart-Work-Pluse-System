@@ -1,10 +1,12 @@
+/* eslint-disable no-unused-vars */
+
 import { useState } from "react";
 import { Box, useMediaQuery } from "@mui/material";
 import { Outlet } from "react-router-dom";
 
 import Sidebar from "../components/layout/Sidebar";
 import Topbar from "../components/layout/Topbar";
-import { useAppData } from "../hooks/useAppData";
+import { useAuth } from "../contexts/AuthContext";
 
 function DashboardLayout({ role }) {
   const isMobile = useMediaQuery((theme) =>
@@ -13,20 +15,20 @@ function DashboardLayout({ role }) {
 
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const { employees } = useAppData();
+  const { user } = useAuth();
 
   const roleMapping = {
     member: "Member",
     "team-leader": "Team Leader",
     hr: "HR",
     admin: "Admin",
+    finance: "Finance",
   };
 
-  const currentEmployee = employees.find(
-    (employee) => employee.role === roleMapping[role]
-  );
-
-  const userName = currentEmployee?.name || "User";
+  // Get authenticated user information
+  const userName = user?.name || "User";
+  const userEmail = user?.email || "";
+  const userRole = roleMapping[role] || role;
 
   const userInitials = userName
     .split(" ")
@@ -68,6 +70,7 @@ function DashboardLayout({ role }) {
           role={role}
           userName={userName}
           userInitials={userInitials}
+          userEmail={userEmail}
           onMenuClick={handleOpenMenu}
         />
 

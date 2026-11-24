@@ -1,7 +1,16 @@
+
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 import PlaceholderPage from "./components/common/PlaceholderPage";
+
+// Authentication
+import Login from "./features/auth/Login";
+import ProtectedRoute from "./guards/ProtectedRoute";
+import PublicRoute from "./guards/PublicRoute";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import RoleProtectedRoute from "./guards/RoleProtectedRoute";
+import Register from "./features/auth/Register";
 
 // Shared Features
 import Notifications from "./features/notifications/Notifications";
@@ -52,14 +61,13 @@ import AuditLogs from "./features/admin/audit-logs/AuditLogs";
 import { AppDataProvider } from "./contexts/AppDataContext.jsx";
 import { useAppData } from "./hooks/useAppData";
 
+
 // Navigation
 import {
   USER_ROLES,
   getNavigationByRole,
 } from "./config/navigation";
 
-// Temporary role until authentication is implemented
-const CURRENT_ROLE = USER_ROLES.ADMIN;
 const CURRENT_TEAM_LEADER = "Sara Ahmed";
 
 function getPageByRole(
@@ -218,49 +226,87 @@ function getPageByRole(
 // Main application content
 function AppContent() {
   const { projects, setProjects } = useAppData();
+  const { user, isAuthenticated } = useAuth();
 
-  const navigationItems = getNavigationByRole(CURRENT_ROLE);
+  const currentRole = user?.role;
+  const navigationItems = getNavigationByRole(currentRole);
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<DashboardLayout role={CURRENT_ROLE} />}>
-          <Route
-            path="/"
-            element={<Navigate to="/dashboard" replace />}
-          />
 
-          {navigationItems.map((item) => (
-            <Route
-              key={item.path}
-              path={item.path.slice(1)}
-              element={getPageByRole(
-                CURRENT_ROLE,
-                item.path,
-                item.label,
-                projects,
-                setProjects,
-                CURRENT_TEAM_LEADER
-              )}
-            />
-          ))}
-
-          {CURRENT_ROLE === USER_ROLES.TEAM_LEADER && (
-            <Route
-              path="projects/:projectId"
-              element={
-                <TeamLeaderProjectDetails
-                  currentTeamLeader={CURRENT_TEAM_LEADER}
-                />
-              }
-            />
-          )}
-
-          <Route
-            path="*"
-            element={<Navigate to="/dashboard" replace />}
-          />
+        {/* Public Routes */}
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Login />} />
         </Route>
+
+        {/* Register Route - Admin & HR Only */}
+        <Route element={<ProtectedRoute />}>
+          <Route
+            element={
+              <RoleProtectedRoute
+                allowedRoles={[USER_ROLES.ADMIN, USER_ROLES.HR]}
+              />
+            }
+          >
+            <Route path="/register" element={<Register />} />
+          </Route>
+        </Route>
+
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout role={currentRole} />}>
+
+            <Route
+              path="/"
+              element={<Navigate to="/dashboard" replace />}
+            />
+
+            {navigationItems.map((item) => (
+              <Route
+                key={item.path}
+                path={item.path.slice(1)}
+                element={getPageByRole(
+                  currentRole,
+                  item.path,
+                  item.label,
+                  projects,
+                  setProjects,
+                  CURRENT_TEAM_LEADER
+                )}
+              />
+            ))}
+
+            {currentRole === USER_ROLES.TEAM_LEADER && (
+              <Route
+                path="projects/:projectId"
+                element={
+                  <TeamLeaderProjectDetails
+                    currentTeamLeader={CURRENT_TEAM_LEADER}
+                  />
+                }
+              />
+            )}
+
+            <Route
+              path="*"
+              element={<Navigate to="/dashboard" replace />}
+            />
+
+          </Route>
+        </Route>
+
+        {/* Fallback */}
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to={isAuthenticated ? "/dashboard" : "/login"}
+              replace
+            />
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );
@@ -269,9 +315,11 @@ function AppContent() {
 // Application root
 function App() {
   return (
-    <AppDataProvider>
-      <AppContent />
-    </AppDataProvider>
+    <AuthProvider>
+      <AppDataProvider>
+        <AppContent />
+      </AppDataProvider>
+    </AuthProvider>
   );
 }
 
