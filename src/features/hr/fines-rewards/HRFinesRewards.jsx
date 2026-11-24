@@ -112,52 +112,6 @@ const departments = [
   "Operations",
 ];
 
-// function StatCard({ title, value, icon, color, subtitle }) {
-//   return (
-//     <Card
-//       sx={{
-//         height: "100%",
-//         borderRadius: 3,
-//         boxShadow: "none",
-//         border: "1px solid",
-//         borderColor: "divider",
-//       }}
-//     >
-//       <CardContent>
-//         <Stack
-//           direction="row"
-//           justifyContent="space-between"
-//           alignItems="center"
-//         >
-//           <Box>
-//             <Typography color="text.secondary" variant="body2">
-//               {title}
-//             </Typography>
-
-//             <Typography variant="h4" fontWeight={700} mt={1}>
-//               {value.toLocaleString("en-US")} EGP
-//             </Typography>
-
-//             <Typography variant="caption" color="text.secondary">
-//               {subtitle}
-//             </Typography>
-//           </Box>
-
-//           <Avatar
-//             sx={{
-//               width: 52,
-//               height: 52,
-//               bgcolor: `${color}15`,
-//               color,
-//             }}
-//           >
-//             {icon}
-//           </Avatar>
-//         </Stack>
-//       </CardContent>
-//     </Card>
-//   );
-// }
 
 const emptyForm = {
   employee: "",

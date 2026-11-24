@@ -24,6 +24,7 @@ import AccessTime from "@mui/icons-material/AccessTime";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import PendingActions from "@mui/icons-material/PendingActions";
 import Search from "@mui/icons-material/Search";
+import StatusChip from "../../../components/common/StatusChip";
 
 const initialRequests = [
   {
@@ -83,11 +84,7 @@ const initialRequests = [
   },
 ];
 
-const statusColor = {
-  Pending: "warning",
-  Approved: "success",
-  Rejected: "error",
-};
+
 
 export default function HROvertime() {
   const [requests, setRequests] = useState(initialRequests);
@@ -340,11 +337,7 @@ export default function HROvertime() {
                   <TableCell>{request.reason}</TableCell>
 
                   <TableCell>
-                    <Chip
-                      label={request.status}
-                      color={statusColor[request.status]}
-                      size="small"
-                    />
+                    <StatusChip status={request.status} />
                   </TableCell>
 
                   <TableCell>

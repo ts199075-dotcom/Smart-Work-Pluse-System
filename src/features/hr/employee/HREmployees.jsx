@@ -7,6 +7,7 @@ import Edit from "@mui/icons-material/Edit";
 import Search from "@mui/icons-material/Search";
 import People from "@mui/icons-material/People";
 import Close from "@mui/icons-material/Close";
+import StatusChip from "../../../components/common/StatusChip";
 
 import {
   Avatar,
@@ -14,7 +15,7 @@ import {
   Button,
   Card,
   CardContent,
-  Chip,
+  // Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -216,18 +217,6 @@ export default function HREmployees() {
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Active":
-        return "success";
-      case "On Leave":
-        return "warning";
-      case "Inactive":
-        return "default";
-      default:
-        return "default";
-    }
-  };
 
   const cardStyle = {
     borderRadius: "16px",
@@ -477,12 +466,7 @@ export default function HREmployees() {
                     <TableCell>{employee.joinDate || "—"}</TableCell>
 
                     <TableCell>
-                      <Chip
-                        label={employee.status}
-                        color={getStatusColor(employee.status)}
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
+                      <StatusChip status={employee.status} />
                     </TableCell>
 
                     <TableCell align="center">

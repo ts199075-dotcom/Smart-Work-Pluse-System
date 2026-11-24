@@ -30,6 +30,7 @@ import AccountBalanceWallet from "@mui/icons-material/AccountBalanceWallet";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import PendingActions from "@mui/icons-material/PendingActions";
 import ReceiptLong from "@mui/icons-material/ReceiptLong";
+import StatusChip from "../../../components/common/StatusChip";
 
 const initialPayroll = [
   {
@@ -117,11 +118,6 @@ const initialPayroll = [
     status: "Paid",
   },
 ];
-
-const statusColors = {
-  Paid: "success",
-  Pending: "warning",
-};
 
 const formatMoney = (amount) =>
   new Intl.NumberFormat("en-EG").format(amount) + " EGP";
@@ -503,11 +499,7 @@ export default function HRPayroll() {
                   </TableCell>
 
                   <TableCell>
-                    <Chip
-                      label={employee.status}
-                      color={statusColors[employee.status]}
-                      size="small"
-                    />
+                    <StatusChip status={employee.status} />
                   </TableCell>
 
                   <TableCell>
@@ -617,10 +609,7 @@ export default function HRPayroll() {
               </Box>
 
               <Box mt={2}>
-                <Chip
-                  label={selectedEmployee.status}
-                  color={statusColors[selectedEmployee.status]}
-                />
+                <StatusChip status={selectedEmployee.status} />
               </Box>
             </DialogContent>
 

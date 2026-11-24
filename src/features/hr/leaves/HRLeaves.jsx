@@ -35,6 +35,7 @@ import Cancel from "@mui/icons-material/Cancel";
 import Visibility from "@mui/icons-material/Visibility";
 import Close from "@mui/icons-material/Close";
 import StatCard from "../../../components/common/StatCard";
+import StatusChip from "../../../components/common/StatusChip";
 
 const initialLeaves = [
   {
@@ -116,54 +117,6 @@ const initialLeaves = [
   },
 ];
 
-const statusColors = {
-  Pending: "warning",
-  Approved: "success",
-  Rejected: "error",
-};
-
-// function StatCard({ title, value, icon, color, subtitle }) {
-//   return (
-//     <Card
-//       sx={{
-//         height: "100%",
-//         borderRadius: 3,
-//         border: "1px solid",
-//         borderColor: "divider",
-//         boxShadow: "none",
-//       }}
-//     >
-//       <CardContent>
-//         <Stack direction="row" justifyContent="space-between" alignItems="center">
-//           <Box>
-//             <Typography color="text.secondary" variant="body2">
-//               {title}
-//             </Typography>
-
-//             <Typography variant="h4" fontWeight={700} mt={1}>
-//               {value}
-//             </Typography>
-
-//             <Typography variant="caption" color="text.secondary">
-//               {subtitle}
-//             </Typography>
-//           </Box>
-
-//           <Avatar
-//             sx={{
-//               width: 52,
-//               height: 52,
-//               bgcolor: `${color}15`,
-//               color: color,
-//             }}
-//           >
-//             {icon}
-//           </Avatar>
-//         </Stack>
-//       </CardContent>
-//     </Card>
-//   );
-// }
 
 export default function HRLeaves() {
   const [leaves, setLeaves] = useState(initialLeaves);
@@ -225,14 +178,6 @@ export default function HRLeaves() {
     }
   };
 
-  const getStatusChip = (value) => (
-    <Chip
-      label={value}
-      color={statusColors[value] || "default"}
-      size="small"
-      sx={{ fontWeight: 600, minWidth: 85 }}
-    />
-  );
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
@@ -434,7 +379,10 @@ export default function HRLeaves() {
                     </TableCell>
 
                     <TableCell>
-                      {getStatusChip(leave.status)}
+                      <StatusChip
+                      status={leave.status}
+                      sx={{ minWidth: 85 }}
+                    />
                     </TableCell>
 
                     <TableCell align="center">
@@ -581,7 +529,10 @@ export default function HRLeaves() {
                   <Typography color="text.secondary" variant="body2">
                     Current Status
                   </Typography>
-                  {getStatusChip(selectedLeave.status)}
+                  <StatusChip
+                    status={selectedLeave.status}
+                    sx={{ minWidth: 85 }}
+                  />
                 </Box>
               </Stack>
             </DialogContent>

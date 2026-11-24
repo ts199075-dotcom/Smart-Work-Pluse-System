@@ -102,56 +102,6 @@ const attendanceTrend = [
 const formatCurrency = (value) =>
   `${value.toLocaleString("en-US")} EGP`;
 
-// function StatCard({ title, value, subtitle, icon, color }) {
-//   return (
-//     <Card
-//       sx={{
-//         height: "100%",
-//         borderRadius: 3,
-//         border: "1px solid",
-//         borderColor: "divider",
-//         boxShadow: "none",
-//       }}
-//     >
-//       <CardContent>
-//         <Stack
-//           direction="row"
-//           justifyContent="space-between"
-//           alignItems="center"
-//         >
-//           <Box>
-//             <Typography variant="body2" color="text.secondary">
-//               {title}
-//             </Typography>
-
-//             <Typography variant="h4" fontWeight={700} mt={1}>
-//               {value}
-//             </Typography>
-
-//             <Typography variant="caption" color="text.secondary">
-//               {subtitle}
-//             </Typography>
-//           </Box>
-
-//           <Box
-//             sx={{
-//               width: 52,
-//               height: 52,
-//               borderRadius: 3,
-//               bgcolor: `${color}15`,
-//               color,
-//               display: "flex",
-//               alignItems: "center",
-//               justifyContent: "center",
-//             }}
-//           >
-//             {icon}
-//           </Box>
-//         </Stack>
-//       </CardContent>
-//     </Card>
-//   );
-// }
 
 function SectionTitle({ title, subtitle }) {
   return (

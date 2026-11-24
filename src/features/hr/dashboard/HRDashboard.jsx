@@ -22,6 +22,8 @@ import {
   CheckCircleOutlineRounded,
 } from "@mui/icons-material";
 
+import StatusChip from "../../../components/common/StatusChip";
+
 const statistics = [
   {
     title: "Total Employees",
@@ -304,10 +306,8 @@ function HRDashboard() {
               <Typography fontSize={13}>{employee.department}</Typography>
               <Typography fontSize={13}>{employee.position}</Typography>
 
-              <Chip
-                size="small"
-                label={employee.status}
-                color={employee.status === "Active" ? "success" : "warning"}
+              <StatusChip
+                status={employee.status}
                 variant="outlined"
               />
             </Stack>

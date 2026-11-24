@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 
 import { useMemo, useState } from "react";
 import {
@@ -29,6 +30,7 @@ import People from "@mui/icons-material/People";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import Cancel from "@mui/icons-material/Cancel";
 import Visibility from "@mui/icons-material/Visibility";
+import StatusChip from "../../../components/common/StatusChip";
 
 const initialAttendance = [
   {
@@ -103,12 +105,6 @@ const initialAttendance = [
   },
 ];
 
-const statusColors = {
-  Present: { color: "success", label: "Present" },
-  Late: { color: "warning", label: "Late" },
-  Absent: { color: "error", label: "Absent" },
-  "On Leave": { color: "info", label: "On Leave" },
-};
 
 export default function HRAttendance() {
   const [attendance, setAttendance] = useState(initialAttendance);
@@ -418,10 +414,9 @@ export default function HRAttendance() {
                   <TableCell>{employee.hours}</TableCell>
 
                   <TableCell>
-                    <Chip
-                      size="small"
-                      label={statusColors[employee.status].label}
-                      color={statusColors[employee.status].color}
+                    <StatusChip
+                      status={employee.status}
+                      color={employee.status === "On Leave" ? "info" : undefined}
                     />
                   </TableCell>
 
