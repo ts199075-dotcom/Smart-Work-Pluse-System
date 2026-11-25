@@ -36,6 +36,8 @@ import {
   LogoutRounded,
 } from "@mui/icons-material";
 
+import StatCard from "../../../components/common/StatCard";
+
 const attendanceRecords = [
   { id: 1, date: "19 Nov 2026", day: "Thursday", checkIn: "07:45 AM", checkOut: "04:30 PM", hours: "8h 45m", status: "Present" },
   { id: 2, date: "18 Nov 2026", day: "Wednesday", checkIn: "08:20 AM", checkOut: "05:10 PM", hours: "8h 50m", status: "Present" },
@@ -74,58 +76,6 @@ const isSameMonth = (date1, date2) => {
     date1.getFullYear() === date2.getFullYear()
   );
 };
-
-function SummaryCard({ title, value, subtitle, icon, color, background }) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        p: 2.5,
-        height: "100%",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 3,
-      }}
-    >
-      <Stack
-        direction="row"
-        sx={{
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <Box>
-          <Typography color="text.secondary" fontSize={13} fontWeight={500}>
-            {title}
-          </Typography>
-
-          <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>
-            {value}
-          </Typography>
-
-          <Typography color="text.secondary" fontSize={12} sx={{ mt: 0.5 }}>
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color,
-            backgroundColor: background,
-          }}
-        >
-          {icon}
-        </Box>
-      </Stack>
-    </Card>
-  );
-}
 
 function StatusChip({ status }) {
   const style = statusStyles[status] || statusStyles.Present;
@@ -420,7 +370,7 @@ function TeamLeaderAttendance() {
           mb: 3,
         }}
       >
-        <SummaryCard
+        <StatCard
           title="Present Days"
           value={summary.present}
           subtitle={`Out of ${summary.total} recorded days`}
@@ -429,7 +379,7 @@ function TeamLeaderAttendance() {
           background="#DCFCE7"
         />
 
-        <SummaryCard
+        <StatCard
           title="Late Days"
           value={summary.late}
           subtitle="Arrivals after 9:00 AM"
@@ -438,7 +388,7 @@ function TeamLeaderAttendance() {
           background="#DBEAFE"
         />
 
-        <SummaryCard
+        <StatCard
           title="Absent Days"
           value={summary.absent}
           subtitle="Days not attended"

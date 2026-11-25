@@ -36,6 +36,8 @@ import {
   FlagRounded,
 } from "@mui/icons-material";
 
+import StatCard from "../../../components/common/StatCard";
+
 // --------------------------------------------------
 // Initial Data
 // --------------------------------------------------
@@ -263,58 +265,6 @@ const getRemainingDays = (endDate) => {
 // --------------------------------------------------
 // Summary Card
 // --------------------------------------------------
-
-function SummaryCard({ title, value, subtitle, icon, color, background }) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        p: 2.5,
-        height: "100%",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 3,
-      }}
-    >
-      <Stack
-        direction="row"
-        sx={{
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <Box>
-          <Typography color="text.secondary" fontSize={13} fontWeight={500}>
-            {title}
-          </Typography>
-
-          <Typography variant="h4" fontWeight={700} sx={{ mt: 1 }}>
-            {value}
-          </Typography>
-
-          <Typography color="text.secondary" fontSize={12} sx={{ mt: 0.5 }}>
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color,
-            backgroundColor: background,
-          }}
-        >
-          {icon}
-        </Box>
-      </Stack>
-    </Card>
-  );
-}
 
 // --------------------------------------------------
 // Sprint Status
@@ -926,7 +876,7 @@ function TeamLeaderSprints() {
           mb: 3,
         }}
       >
-        <SummaryCard
+        <StatCard
           title="Total Sprints"
           value={summary.total}
           subtitle="All work cycles"
@@ -935,7 +885,7 @@ function TeamLeaderSprints() {
           background="#DBEAFE"
         />
 
-        <SummaryCard
+        <StatCard
           title="Active Sprints"
           value={summary.active}
           subtitle="Currently running"
@@ -944,7 +894,7 @@ function TeamLeaderSprints() {
           background="#FEF3C7"
         />
 
-        <SummaryCard
+        <StatCard
           title="Completed Sprints"
           value={summary.completed}
           subtitle="Successfully finished"
@@ -953,7 +903,7 @@ function TeamLeaderSprints() {
           background="#DCFCE7"
         />
 
-        <SummaryCard
+        <StatCard
           title="Planned Sprints"
           value={summary.planned}
           subtitle="Upcoming work cycles"

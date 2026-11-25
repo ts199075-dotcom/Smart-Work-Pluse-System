@@ -43,7 +43,8 @@ import {
 } from "@mui/icons-material";
 
 import { useAppData } from "../../../hooks/useAppData";
-
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
 
 // ==============================
 // Constants
@@ -137,82 +138,6 @@ const getProjectMemberIds = (project) => {
 
   return members ? [members] : [];
 };
-
-// ==============================
-// Statistics Card
-// ==============================
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon,
-  color,
-  bgColor,
-}) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2.5,
-        borderRadius: 3,
-        border: "1px solid #E8EDF5",
-        height: "100%",
-        transition: "all 0.25s ease",
-
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 10px 25px rgba(15,23,42,0.07)",
-        },
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-      >
-        <Box>
-          <Typography
-            color="text.secondary"
-            fontSize={13}
-            fontWeight={600}
-          >
-            {title}
-          </Typography>
-
-          <Typography
-            variant="h4"
-            fontWeight={800}
-            color="#17365D"
-            sx={{ mt: 1 }}
-          >
-            {value}
-          </Typography>
-
-          <Typography
-            fontSize={11}
-            color="text.secondary"
-            sx={{ mt: 0.8 }}
-          >
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Avatar
-          sx={{
-            bgcolor: bgColor,
-            color,
-            width: 48,
-            height: 48,
-            borderRadius: 2.5,
-          }}
-        >
-          {icon}
-        </Avatar>
-      </Stack>
-    </Paper>
-  );
-}
 
 // ==============================
 // User Dialog
@@ -750,50 +675,27 @@ export default function AdminUsers() {
 
       {/* Header */}
 
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", sm: "center" }}
-        spacing={2}
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography
-            variant="h4"
-            fontWeight={800}
-            color="#17365D"
+      <PageHeader
+        title="Users Management"
+        subtitle="Manage company employees, roles, and account status."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<PersonAddAlt1Outlined />}
+            onClick={handleOpenAdd}
             sx={{
-              fontSize: { xs: 24, md: 30 },
+              borderRadius: 2,
+              px: 2.5,
+              py: 1.1,
+              fontWeight: 700,
+              textTransform: "none",
+              boxShadow: "none",
             }}
           >
-            Users Management
-          </Typography>
-
-          <Typography
-            color="text.secondary"
-            fontSize={14}
-            sx={{ mt: 0.7 }}
-          >
-            Manage company employees, roles, and account status.
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<PersonAddAlt1Outlined />}
-          onClick={handleOpenAdd}
-          sx={{
-            borderRadius: 2,
-            px: 2.5,
-            py: 1.1,
-            fontWeight: 700,
-            textTransform: "none",
-            boxShadow: "none",
-          }}
-        >
-          Add New User
-        </Button>
-      </Stack>
+            Add New User
+          </Button>
+        }
+      />
 
       {/* Statistics */}
 

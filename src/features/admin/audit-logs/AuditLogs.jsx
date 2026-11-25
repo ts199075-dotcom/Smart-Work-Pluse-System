@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Card,
-  CardContent,
   Typography,
   Stack,
   TextField,
@@ -45,6 +44,8 @@ import {
 } from "@mui/icons-material";
 
 import { getAuditLogs } from "../../../utils/auditLogger";
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
 
 // Action Configuration
 const actionConfig = {
@@ -73,56 +74,6 @@ const actionConfig = {
     text: "#475569",
   },
 };
-
-// Statistics Card
-const StatCard = ({ title, value, icon, color, background }) => (
-  <Card
-    elevation={0}
-    sx={{
-      border: "1px solid #E8EDF5",
-      borderRadius: "14px",
-      height: "100%",
-    }}
-  >
-    <CardContent sx={{ p: 2.5 }}>
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-      >
-        <Box>
-          <Typography color="text.secondary" fontSize={13} fontWeight={500}>
-            {title}
-          </Typography>
-
-          <Typography
-            fontSize={27}
-            fontWeight={700}
-            color="#17365D"
-            mt={1}
-          >
-            {value}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            width: 46,
-            height: 46,
-            borderRadius: "12px",
-            bgcolor: background,
-            color,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {icon}
-        </Box>
-      </Stack>
-    </CardContent>
-  </Card>
-);
 
 // Action Badge
 const ActionBadge = ({ action }) => {
@@ -401,58 +352,30 @@ export default function AuditLogs() {
       }}
     >
       {/* Header */}
-      <Stack
-        direction={{
-          xs: "column",
-          sm: "row",
-        }}
-        justifyContent="space-between"
-        alignItems={{
-          xs: "flex-start",
-          sm: "center",
-        }}
-        spacing={2}
-        mb={3}
-      >
-        <Box>
-          <Typography
-            variant="h4"
-            fontWeight={700}
-            color="#17365D"
+      <PageHeader
+        title="Audit Logs"
+        subtitle="Monitor and review activities performed across your company system."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<DownloadRounded />}
+            onClick={handleExport}
             sx={{
-              fontSize: {
-                xs: 25,
-                md: 30,
+              bgcolor: "#2563EB",
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 600,
+              px: 2.5,
+              py: 1.1,
+              "&:hover": {
+                bgcolor: "#1D4ED8",
               },
             }}
           >
-            Audit Logs
-          </Typography>
-
-          <Typography color="text.secondary" mt={0.5} fontSize={14}>
-            Monitor and review activities performed across your company system.
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<DownloadRounded />}
-          onClick={handleExport}
-          sx={{
-            bgcolor: "#2563EB",
-            borderRadius: "10px",
-            textTransform: "none",
-            fontWeight: 600,
-            px: 2.5,
-            py: 1.1,
-            "&:hover": {
-              bgcolor: "#1D4ED8",
-            },
-          }}
-        >
-          Export CSV
-        </Button>
-      </Stack>
+            Export CSV
+          </Button>
+        }
+      />
 
       {/* Statistics */}
       <Box

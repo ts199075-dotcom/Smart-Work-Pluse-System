@@ -21,6 +21,8 @@ import {
 
 import { useAppData } from "../../../hooks/useAppData";
 import { calculateProjectProgress } from "../../team-leader/projects/projectsData";
+import StatCard from "../../../components/common/StatCard";
+import { formatDate } from "../../../utils/formatters";
 
 // Temporary employee until Backend Authentication is ready
 const CURRENT_MEMBER_ID = 1;
@@ -58,50 +60,6 @@ function StatusChip({ status }) {
   );
 }
 
-function SummaryCard({ title, value, description, icon, color, bg }) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2.5,
-        minWidth: 0,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "14px",
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={1.5}>
-        <Avatar
-          variant="rounded"
-          sx={{
-            width: 42,
-            height: 42,
-            bgcolor: bg,
-            color,
-            borderRadius: 1.5,
-          }}
-        >
-          {icon}
-        </Avatar>
-
-        <Box minWidth={0}>
-          <Typography fontSize={12} color="text.secondary">
-            {title}
-          </Typography>
-
-          <Typography variant="h4" fontWeight={700}>
-            {value}
-          </Typography>
-
-          <Typography fontSize={11} color="text.secondary">
-            {description}
-          </Typography>
-        </Box>
-      </Stack>
-    </Paper>
-  );
-}
-
 function SectionHeader({ title }) {
   return (
     <Typography variant="h5" fontWeight={700} mb={2}>
@@ -122,19 +80,6 @@ function isOverdue(task) {
   deadline.setHours(0, 0, 0, 0);
 
   return deadline < today;
-}
-
-function formatDate(date) {
-  if (!date) return "No deadline";
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) return "No deadline";
-
-  return parsedDate.toLocaleDateString("en-US", {
-    day: "2-digit",
-    month: "short",
-  });
 }
 
 function formatHours(totalMinutes) {
@@ -386,40 +331,48 @@ function MemberDashboard() {
           mb: 3,
         }}
       >
-        <SummaryCard
+        <StatCard
           title="Active Projects"
           value={activeProjects.length}
           description="Currently assigned"
           icon={<FolderRounded />}
           color="#2563EB"
           bg="#DBEAFE"
+          iconPosition="start"
+          hover={false}
         />
 
-        <SummaryCard
+        <StatCard
           title="Open Tasks"
           value={openTasks.length}
           description="Tasks to complete"
           icon={<AssignmentRounded />}
           color="#D97706"
           bg="#FEF3C7"
+          iconPosition="start"
+          hover={false}
         />
 
-        <SummaryCard
+        <StatCard
           title="Completed Tasks"
           value={completedTasks.length}
           description="Successfully completed"
           icon={<CheckCircleRounded />}
           color="#16A34A"
           bg="#DCFCE7"
+          iconPosition="start"
+          hover={false}
         />
 
-        <SummaryCard
+        <StatCard
           title="Overdue Tasks"
           value={overdueTasks.length}
           description="Need your attention"
           icon={<WarningAmberRounded />}
           color="#DC2626"
           bg="#FEE2E2"
+          iconPosition="start"
+          hover={false}
         />
       </Box>
 
@@ -531,7 +484,7 @@ function MemberDashboard() {
                       }}
                     >
                       <Typography fontSize={11} color="text.secondary">
-                        {formatDate(task.deadline)}
+                        {formatDate(task.deadline, "No deadline")}
                       </Typography>
                     </Box>
 

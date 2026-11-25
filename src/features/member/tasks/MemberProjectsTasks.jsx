@@ -7,7 +7,6 @@ import {
   LinearProgress,
   Stack,
   Typography,
-  Avatar,
   Divider,
   FormControl,
   Select,
@@ -23,6 +22,8 @@ import {
 
 import { useAppData } from "../../../hooks/useAppData";
 import { calculateProjectProgress } from "../../team-leader/projects/projectsData";
+import StatCard from "../../../components/common/StatCard";
+import { formatDate } from "../../../utils/formatters";
 
 // Temporary employee until Backend Authentication is ready
 const CURRENT_MEMBER_ID = 1;
@@ -55,63 +56,6 @@ function StatusChip({ status }) {
       }}
     />
   );
-}
-
-function SummaryCard({ title, value, icon, color, bg, subtitle }) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2.5,
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={1.5}>
-        <Avatar
-          variant="rounded"
-          sx={{
-            width: 42,
-            height: 42,
-            bgcolor: bg,
-            color,
-            borderRadius: 1.5,
-          }}
-        >
-          {icon}
-        </Avatar>
-
-        <Box>
-          <Typography fontSize={12} color="text.secondary">
-            {title}
-          </Typography>
-
-          <Typography fontSize={23} fontWeight={700}>
-            {value}
-          </Typography>
-
-          <Typography fontSize={11} color="text.secondary">
-            {subtitle}
-          </Typography>
-        </Box>
-      </Stack>
-    </Card>
-  );
-}
-
-function formatDate(date) {
-  if (!date) return "No deadline";
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) return "No deadline";
-
-  return parsedDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function isOverdue(task) {
@@ -218,31 +162,37 @@ function MemberProjectsTasks() {
           mb: 3,
         }}
       >
-        <SummaryCard
+        <StatCard
           title="Active Projects"
           value={activeProjectsCount}
           subtitle="Currently assigned"
           icon={<FolderRounded />}
           color="#2563EB"
           bg="#DBEAFE"
+          iconPosition="start"
+          hover={false}
         />
 
-        <SummaryCard
+        <StatCard
           title="Open Tasks"
           value={openTasksCount}
           subtitle="Tasks to complete"
           icon={<AssignmentRounded />}
           color="#D97706"
           bg="#FEF3C7"
+          iconPosition="start"
+          hover={false}
         />
 
-        <SummaryCard
+        <StatCard
           title="Overdue Tasks"
           value={overdueTasksCount}
           subtitle="Need your attention"
           icon={<WarningAmberRounded />}
           color="#DC2626"
           bg="#FEE2E2"
+          iconPosition="start"
+          hover={false}
         />
       </Box>
 
@@ -504,7 +454,7 @@ function MemberProjectsTasks() {
                     </Typography>
 
                     <Typography fontSize={11}>
-                      {formatDate(task.deadline)}
+                      {formatDate(task.deadline, "No deadline")}
                     </Typography>
 
                     <Box>

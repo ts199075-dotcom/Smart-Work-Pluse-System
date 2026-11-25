@@ -35,6 +35,7 @@ import {
 } from "recharts";
 
 import { useAppData } from "../../../hooks/useAppData";
+import StatCard from "../../../components/common/StatCard";
 
 const STATUS_COLORS = {
   Completed: "#16A34A",
@@ -89,76 +90,6 @@ const calculateProgress = (tasks = []) => {
 
   return Math.round((completed / tasks.length) * 100);
 };
-
-// Reusable statistic card
-const StatCard = ({ title, value, subtitle, icon, color }) => (
-  <Paper
-    elevation={0}
-    sx={{
-      p: 2.5,
-      height: "100%",
-      minHeight: 140,
-      boxSizing: "border-box",
-      border: "1px solid #E8EDF4",
-      borderRadius: 3,
-      backgroundColor: "#FFFFFF",
-      transition: "0.2s ease",
-      "&:hover": {
-        borderColor: "#CBD5E1",
-        transform: "translateY(-2px)",
-      },
-    }}
-  >
-    <Stack
-      direction="row"
-      justifyContent="space-between"
-      alignItems="flex-start"
-      spacing={1}
-    >
-      <Box sx={{ minWidth: 0 }}>
-        <Typography
-          color="#64748B"
-          fontSize={13}
-          fontWeight={500}
-          sx={{ mb: 1.5 }}
-        >
-          {title}
-        </Typography>
-
-        <Typography
-          sx={{
-            fontSize: 28,
-            fontWeight: 700,
-            color: "#17365D",
-            lineHeight: 1.2,
-          }}
-        >
-          {value}
-        </Typography>
-
-        <Typography color="#94A3B8" fontSize={11} sx={{ mt: 1 }}>
-          {subtitle}
-        </Typography>
-      </Box>
-
-      <Box
-        sx={{
-          width: 44,
-          height: 44,
-          minWidth: 44,
-          borderRadius: 2.5,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: `${color}14`,
-          color,
-        }}
-      >
-        {icon}
-      </Box>
-    </Stack>
-  </Paper>
-);
 
 // Reusable chart container
 const ChartCard = ({ title, subtitle, children }) => (
@@ -505,6 +436,7 @@ const CompanyAnalytics = () => {
           subtitle="Across the company"
           icon={<BusinessCenterOutlined />}
           color="#2563EB"
+          bgColor="#2563EB15"
         />
 
         <StatCard
@@ -513,6 +445,7 @@ const CompanyAnalytics = () => {
           subtitle="Successfully completed"
           icon={<TaskAltOutlined />}
           color="#16A34A"
+          bgColor="#16A34A15"
         />
 
         <StatCard
@@ -521,6 +454,7 @@ const CompanyAnalytics = () => {
           subtitle={`${analytics.completedTasks} of ${analytics.totalTasks} tasks`}
           icon={<TrendingUpOutlined />}
           color="#7C3AED"
+          bgColor="#7C3AED15"
         />
 
         <StatCard
@@ -529,6 +463,7 @@ const CompanyAnalytics = () => {
           subtitle="Registered company employees"
           icon={<GroupsOutlined />}
           color="#D97706"
+          bgColor="#D9770615"
         />
       </Box>
 

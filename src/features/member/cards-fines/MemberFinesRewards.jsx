@@ -22,6 +22,8 @@ import {
   CheckCircleRounded,
 } from "@mui/icons-material";
 
+import StatCard from "../../../components/common/StatCard";
+
 const finesData = [
   {
     id: 1,
@@ -97,50 +99,6 @@ function StatusChip({ status }) {
   );
 }
 
-function SummaryCard({ title, value, subtitle, icon, color, bg }) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2.5,
-        minHeight: 112,
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={1.5}>
-        <Avatar
-          variant="rounded"
-          sx={{
-            width: 38,
-            height: 38,
-            bgcolor: bg,
-            color,
-            borderRadius: 1.5,
-          }}
-        >
-          {icon}
-        </Avatar>
-
-        <Box minWidth={0}>
-          <Typography fontSize={12} color="text.secondary">
-            {title}
-          </Typography>
-
-          <Typography fontSize={21} fontWeight={700} lineHeight={1.35}>
-            {value}
-          </Typography>
-
-          <Typography fontSize={11} color="text.secondary">
-            {subtitle}
-          </Typography>
-        </Box>
-      </Stack>
-    </Card>
-  );
-}
-
 function MemberFinesRewards() {
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -198,22 +156,26 @@ function MemberFinesRewards() {
           mb: 2.5,
         }}
       >
-        <SummaryCard
+        <StatCard
           title="Unpaid fines"
           value="EGP 200"
           subtitle="1 fine · due 31 Oct"
           icon={<WarningAmberRounded />}
           color="#D97706"
           bg="#FEF3C7"
+          iconPosition="start"
+          hover={false}
         />
 
-        <SummaryCard
+        <StatCard
           title="Reward balance"
           value="EGP 350"
           subtitle="Available to claim in payroll"
           icon={<AccountBalanceWalletRounded />}
           color="#2563EB"
           bg="#DBEAFE"
+          iconPosition="start"
+          hover={false}
         />
 
         <Card

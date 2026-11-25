@@ -32,6 +32,8 @@ import {
 } from "@mui/icons-material";
 
 import { useAppData } from "../../../hooks/useAppData";
+import StatCard from "../../../components/common/StatCard";
+import { formatDate } from "../../../utils/formatters";
 
 const getProjectStatus = (status, progress) => {
   const normalizedStatus = status?.toLowerCase();
@@ -93,76 +95,6 @@ const isOverdue = (project, progress) => {
 
   return endDate < new Date();
 };
-
-const formatDate = (date) => {
-  if (!date) return "—";
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) return date;
-
-  return parsedDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
-
-function StatCard({ title, value, subtitle, icon, color, bgColor }) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2.5,
-        borderRadius: 3,
-        border: "1px solid #E8EDF5",
-        height: "100%",
-        transition: "all 0.25s ease",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 10px 25px rgba(15,23,42,0.07)",
-        },
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-      >
-        <Box>
-          <Typography fontSize={13} fontWeight={600} color="text.secondary">
-            {title}
-          </Typography>
-
-          <Typography
-            variant="h4"
-            fontWeight={800}
-            color="#17365D"
-            sx={{ mt: 1 }}
-          >
-            {value}
-          </Typography>
-
-          <Typography fontSize={11} color="text.secondary" sx={{ mt: 0.8 }}>
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Avatar
-          sx={{
-            bgcolor: bgColor,
-            color,
-            width: 48,
-            height: 48,
-            borderRadius: 2.5,
-          }}
-        >
-          {icon}
-        </Avatar>
-      </Stack>
-    </Paper>
-  );
-}
 
 export default function AdminProjects() {
   const { projects, employees } = useAppData();

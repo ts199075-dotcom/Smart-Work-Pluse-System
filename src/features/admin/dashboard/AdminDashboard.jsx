@@ -44,6 +44,8 @@ import {
 } from "recharts";
 
 import { useAppData } from "../../../hooks/useAppData";
+import StatCard from "../../../components/common/StatCard";
+import { formatDate, formatNumber } from "../../../utils/formatters";
 
 import {
   calculateProjectProgress,
@@ -65,23 +67,6 @@ const statusColors = {
   Completed: "#16A34A",
   "To Do": "#F59E0B",
   Other: "#94A3B8",
-};
-
-const formatNumber = (value) =>
-  Number(value || 0).toLocaleString();
-
-const formatDate = (date) => {
-  if (!date) return "No due date";
-
-  const parsedDate = new Date(date);
-
-  if (Number.isNaN(parsedDate.getTime())) return date;
-
-  return parsedDate.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 };
 
 const getStatusColor = (status) => {
@@ -119,108 +104,6 @@ const isProjectOverdue = (project) => {
     endDate < today
   );
 };
-
-// ==============================
-// Statistics Card
-// ==============================
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon,
-  color,
-  bgColor,
-}) {
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        p: 2.5,
-        borderRadius: 3,
-        border: "1px solid #E8EDF5",
-        height: "100%",
-        position: "relative",
-        overflow: "hidden",
-        transition: "all 0.25s ease",
-
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: "0 12px 28px rgba(15, 23, 42, 0.08)",
-          borderColor: `${color}55`,
-        },
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        spacing={1}
-      >
-        <Box sx={{ minWidth: 0 }}>
-          <Typography
-            color="text.secondary"
-            fontSize={13}
-            fontWeight={600}
-          >
-            {title}
-          </Typography>
-
-          <Typography
-            variant="h4"
-            fontWeight={800}
-            sx={{
-              mt: 1.2,
-              color: "#17365D",
-              fontSize: { xs: 27, md: 30 },
-            }}
-          >
-            {value}
-          </Typography>
-
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{
-              display: "block",
-              mt: 1,
-              lineHeight: 1.5,
-            }}
-          >
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Avatar
-          sx={{
-            width: 48,
-            height: 48,
-            bgcolor: bgColor,
-            color,
-            borderRadius: 2.5,
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </Avatar>
-      </Stack>
-
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: -25,
-          right: -20,
-          width: 90,
-          height: 90,
-          borderRadius: "50%",
-          bgcolor: bgColor,
-          opacity: 0.35,
-          pointerEvents: "none",
-        }}
-      />
-    </Paper>
-  );
-}
 
 // ==============================
 // Chart Card
@@ -339,7 +222,7 @@ function ProjectRow({
             color="text.secondary"
             noWrap
           >
-            Due: {formatDate(project.endDate)}
+            Due: {formatDate(project.endDate, "No due date")}
           </Typography>
 
           {overdue && (

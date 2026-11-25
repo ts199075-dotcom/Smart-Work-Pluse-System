@@ -24,6 +24,8 @@ import {
   AssignmentOutlined,
 } from "@mui/icons-material";
 
+import StatCard from "../../../components/common/StatCard";
+
 const summaryCards = [
   {
     title: "Total Teams",
@@ -99,64 +101,6 @@ const recentRecords = [
     color: "#D97706",
   },
 ];
-
-function SummaryCard({ card }) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        height: "100%",
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 3,
-      }}
-    >
-      <CardContent sx={{ p: 3 }}>
-        <Stack
-          direction="row"
-          sx={{
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Typography color="text.secondary" fontSize={14}>
-            {card.title}
-          </Typography>
-
-          <Box
-            sx={{
-              width: 44,
-              height: 44,
-              borderRadius: 2,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: card.background,
-              color: card.color,
-              fontSize: 24,
-            }}
-          >
-            {card.icon}
-          </Box>
-        </Stack>
-
-        <Typography
-          variant="h4"
-          fontWeight={700}
-          color="text.primary"
-          mb={0.5}
-        >
-          {card.value}
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary">
-          {card.subtitle}
-        </Typography>
-      </CardContent>
-    </Card>
-  );
-}
 
 function getStatusStyle(status) {
   switch (status) {
@@ -242,7 +186,7 @@ function TeamLeaderTeams() {
         }}
       >
         {summaryCards.map((card) => (
-          <SummaryCard key={card.title} card={card} />
+          <StatCard key={card.title} {...card} />
         ))}
       </Box>
 

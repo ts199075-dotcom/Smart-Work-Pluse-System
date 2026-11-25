@@ -30,6 +30,8 @@ import {
   LinearProgress,
 } from "@mui/material";
 
+import StatCard from "../../../components/common/StatCard";
+
 import {
   AccessTimeRounded,
   GroupsRounded,
@@ -127,56 +129,6 @@ const statusStyles = {
     backgroundColor: "#FEE2E2",
   },
 };
-
-function SummaryCard({ title, value, subtitle, icon, color, background }) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        p: 2.5,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 3,
-        height: "100%",
-      }}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-      >
-        <Box>
-          <Typography color="text.secondary" fontSize={13} fontWeight={500}>
-            {title}
-          </Typography>
-
-          <Typography variant="h4" sx={{ mt: 1, fontWeight: 700 }}>
-            {value}
-          </Typography>
-
-          <Typography color="text.secondary" fontSize={12} sx={{ mt: 0.5 }}>
-            {subtitle}
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            width: 44,
-            height: 44,
-            borderRadius: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color,
-            backgroundColor: background,
-          }}
-        >
-          {icon}
-        </Box>
-      </Stack>
-    </Card>
-  );
-}
 
 function StatusChip({ status }) {
   const style = statusStyles[status];
@@ -296,7 +248,7 @@ function TeamLeaderOvertime() {
           mb: 4,
         }}
       >
-        <SummaryCard
+        <StatCard
           title="Total Requests"
           value={summary.total}
           subtitle="All overtime requests"
@@ -305,7 +257,7 @@ function TeamLeaderOvertime() {
           background="#DBEAFE"
         />
 
-        <SummaryCard
+        <StatCard
           title="Pending Requests"
           value={summary.pending}
           subtitle="Waiting for your review"
@@ -314,7 +266,7 @@ function TeamLeaderOvertime() {
           background="#FEF3C7"
         />
 
-        <SummaryCard
+        <StatCard
           title="Approved Requests"
           value={summary.approved}
           subtitle="Successfully approved"
@@ -323,7 +275,7 @@ function TeamLeaderOvertime() {
           background="#DCFCE7"
         />
 
-        <SummaryCard
+        <StatCard
           title="Rejected Requests"
           value={summary.rejected}
           subtitle="Requests not approved"
