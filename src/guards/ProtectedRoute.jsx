@@ -5,7 +5,6 @@ import { useAuth } from "../contexts/AuthContext";
 const ProtectedRoute = () => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
-  console.log("ProtectedRoute State:", { isAuthenticated, loading });
 
   // Wait until authentication state is restored
   if (loading) {
