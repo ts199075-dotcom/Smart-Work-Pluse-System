@@ -31,6 +31,9 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import PendingActions from "@mui/icons-material/PendingActions";
 import ReceiptLong from "@mui/icons-material/ReceiptLong";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 const initialPayroll = [
   {
     id: 1,
@@ -195,60 +198,34 @@ export default function HRPayroll() {
       title: "Total Payroll",
       value: formatMoney(stats.totalSalary),
       icon: <AccountBalanceWallet />,
-      color: "#6366f1",
+      color: "#2563EB",
     },
     {
       title: "Paid Employees",
       value: stats.paidCount,
       icon: <CheckCircle />,
-      color: "#22c55e",
+      color: "#16A34A",
     },
     {
       title: "Pending Payments",
       value: stats.pendingCount,
       icon: <PendingActions />,
-      color: "#f59e0b",
+      color: "#D97706",
     },
     {
       title: "Total Deductions",
       value: formatMoney(stats.totalDeductions),
       icon: <ReceiptLong />,
-      color: "#ef4444",
+      color: "#DC2626",
     },
   ];
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", md: "center" }}
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Payroll Management
-          </Typography>
-
-          <Typography color="text.secondary" mt={0.5}>
-            Manage salaries, bonuses, deductions and payments
-          </Typography>
-        </Box>
-
-        <TextField
-          select
-          size="small"
-          defaultValue="November 2026"
-          sx={{ minWidth: 180 }}
-        >
-          <MenuItem value="November 2026">November 2026</MenuItem>
-          <MenuItem value="October 2026">October 2026</MenuItem>
-          <MenuItem value="September 2026">September 2026</MenuItem>
-        </TextField>
-      </Box>
+      <PageHeader
+        title="Payroll"
+        subtitle="Manage employee salaries and payroll processing"
+      />
 
       {/* Statistics */}
       <Grid container spacing={2} mb={3}>
@@ -463,7 +440,7 @@ export default function HRPayroll() {
                         sx={{
                           width: 34,
                           height: 34,
-                          bgcolor: "#6366f1",
+                          bgcolor: "#2563EB",
                           fontSize: 12,
                         }}
                       >
@@ -562,7 +539,7 @@ export default function HRPayroll() {
 
             <DialogContent>
               <Box display="flex" alignItems="center" gap={2} mb={2}>
-                <Avatar sx={{ width: 52, height: 52, bgcolor: "#6366f1" }}>
+                <Avatar sx={{ width: 52, height: 52, bgcolor: "#2563EB" }}>
                   {selectedEmployee.name
                     .split(" ")
                     .map((word) => word[0])

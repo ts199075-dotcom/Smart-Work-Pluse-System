@@ -36,6 +36,9 @@ import Cancel from "@mui/icons-material/Cancel";
 import Visibility from "@mui/icons-material/Visibility";
 import Close from "@mui/icons-material/Close";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 const initialLeaves = [
   {
     id: 1,
@@ -122,49 +125,6 @@ const statusColors = {
   Rejected: "error",
 };
 
-function StatCard({ title, value, icon, color, subtitle }) {
-  return (
-    <Card
-      sx={{
-        height: "100%",
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        boxShadow: "none",
-      }}
-    >
-      <CardContent>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box>
-            <Typography color="text.secondary" variant="body2">
-              {title}
-            </Typography>
-
-            <Typography variant="h4" fontWeight={700} mt={1}>
-              {value}
-            </Typography>
-
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </Box>
-
-          <Avatar
-            sx={{
-              width: 52,
-              height: 52,
-              bgcolor: `${color}15`,
-              color: color,
-            }}
-          >
-            {icon}
-          </Avatar>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function HRLeaves() {
   const [leaves, setLeaves] = useState(initialLeaves);
   const [search, setSearch] = useState("");
@@ -235,81 +195,70 @@ export default function HRLeaves() {
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Leave Management
-          </Typography>
-
-          <Typography color="text.secondary" mt={0.5}>
-            Manage employee leave requests and approvals
-          </Typography>
-        </Box>
-      </Box>
+    <Box sx={{ pb: 4 }}>
+      <PageHeader
+        title="Leave Management"
+        subtitle="Manage employee leave requests and approvals"
+      />
 
       {/* Statistics */}
-      <Grid container spacing={2} mb={3}>
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Total Requests"
-            value={total}
-            icon={<EventAvailable />}
-            color="#6366f1"
-            subtitle="All leave requests"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Pending"
-            value={pending}
-            icon={<PendingActions />}
-            color="#f59e0b"
-            subtitle="Waiting for approval"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Approved"
-            value={approved}
-            icon={<CheckCircle />}
-            color="#10b981"
-            subtitle="Approved requests"
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <StatCard
-            title="Rejected"
-            value={rejected}
-            icon={<Cancel />}
-            color="#ef4444"
-            subtitle="Rejected requests"
-          />
-        </Grid>
-      </Grid>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            lg: "repeat(4, 1fr)",
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <StatCard
+          title="Total Requests"
+          value={total}
+          icon={<EventAvailable />}
+          color="#2563EB"
+          bgColor="#EFF6FF"
+          subtitle="All leave requests"
+        />
+        <StatCard
+          title="Pending"
+          value={pending}
+          icon={<PendingActions />}
+          color="#D97706"
+          bgColor="#FFFBEB"
+          subtitle="Waiting for approval"
+        />
+        <StatCard
+          title="Approved"
+          value={approved}
+          icon={<CheckCircle />}
+          color="#16A34A"
+          bgColor="#F0FDF4"
+          subtitle="Approved requests"
+        />
+        <StatCard
+          title="Rejected"
+          value={rejected}
+          icon={<Cancel />}
+          color="#DC2626"
+          bgColor="#FEF2F2"
+          subtitle="Rejected requests"
+        />
+      </Box>
 
       {/* Filters */}
-      <Card
+      <Paper
+        elevation={0}
         sx={{
           mb: 3,
+          p: 2.5,
           borderRadius: 3,
-          boxShadow: "none",
           border: "1px solid",
           borderColor: "divider",
         }}
       >
-        <CardContent>
           <Grid container spacing={2}>
             <Grid item xs={12} md={5}>
               <TextField
@@ -361,11 +310,11 @@ export default function HRLeaves() {
               </TextField>
             </Grid>
           </Grid>
-        </CardContent>
-      </Card>
+      </Paper>
 
       {/* Table */}
-      <Card
+      <Paper
+        elevation={0}
         sx={{
           borderRadius: 3,
           boxShadow: "none",
@@ -485,7 +434,7 @@ export default function HRLeaves() {
             </TableBody>
           </Table>
         </TableContainer>
-      </Card>
+      </Paper>
 
       {/* Leave Details Dialog */}
       <Dialog

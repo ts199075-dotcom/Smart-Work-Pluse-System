@@ -30,6 +30,10 @@ import {
   DoneAll,
 } from "@mui/icons-material";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
+
 const initialNotifications = [
   {
     id: 1,

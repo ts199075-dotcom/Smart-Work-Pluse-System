@@ -38,6 +38,9 @@ import Visibility from "@mui/icons-material/Visibility";
 import Delete from "@mui/icons-material/Delete";
 import Close from "@mui/icons-material/Close";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 const initialRecords = [
   {
     id: 1,
@@ -109,53 +112,6 @@ const departments = [
   "Sales",
   "Operations",
 ];
-
-function StatCard({ title, value, icon, color, subtitle }) {
-  return (
-    <Card
-      sx={{
-        height: "100%",
-        borderRadius: 3,
-        boxShadow: "none",
-        border: "1px solid",
-        borderColor: "divider",
-      }}
-    >
-      <CardContent>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Box>
-            <Typography color="text.secondary" variant="body2">
-              {title}
-            </Typography>
-
-            <Typography variant="h4" fontWeight={700} mt={1}>
-              {value.toLocaleString("en-US")} EGP
-            </Typography>
-
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </Box>
-
-          <Avatar
-            sx={{
-              width: 52,
-              height: 52,
-              bgcolor: `${color}15`,
-              color,
-            }}
-          >
-            {icon}
-          </Avatar>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
 
 const emptyForm = {
   employee: "",
@@ -266,45 +222,32 @@ export default function HRFinesRewards() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Fines & Rewards
-          </Typography>
-
-          <Typography color="text.secondary" mt={0.5}>
-            Manage employee rewards and disciplinary fines
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setForm(emptyForm);
-            setOpenDialog(true);
-          }}
-        >
-          Add Record
-        </Button>
-      </Box>
+      <PageHeader
+        title="Fines & Rewards"
+        subtitle="Manage employee rewards and disciplinary fines"
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => {
+              setForm(emptyForm);
+              setOpenDialog(true);
+            }}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 700, boxShadow: "none" }}
+          >
+            Add Record
+          </Button>
+        }
+      />
 
       {/* Statistics */}
       <Grid container spacing={2} mb={3}>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Rewards"
-            value={totalRewards}
+            value={`${totalRewards.toLocaleString("en-US")} EGP`}
             icon={<EmojiEvents />}
-            color="#10b981"
+            color="#16A34A"
             subtitle={`${rewardsCount} reward records`}
           />
         </Grid>
@@ -312,9 +255,9 @@ export default function HRFinesRewards() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Total Fines"
-            value={totalFines}
+            value={`${totalFines.toLocaleString("en-US")} EGP`}
             icon={<Gavel />}
-            color="#ef4444"
+            color="#DC2626"
             subtitle={`${finesCount} fine records`}
           />
         </Grid>
@@ -322,9 +265,9 @@ export default function HRFinesRewards() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             title="Net Amount"
-            value={totalRewards - totalFines}
+            value={`${(totalRewards - totalFines).toLocaleString("en-US")} EGP`}
             icon={<Payments />}
-            color="#6366f1"
+            color="#2563EB"
             subtitle="Rewards minus fines"
           />
         </Grid>
@@ -334,7 +277,7 @@ export default function HRFinesRewards() {
             title="Total Records"
             value={records.length}
             icon={<Payments />}
-            color="#f59e0b"
+            color="#D97706"
             subtitle="All transactions"
           />
         </Grid>

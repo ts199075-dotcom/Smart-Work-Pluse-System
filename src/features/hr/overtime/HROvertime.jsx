@@ -25,6 +25,9 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import PendingActions from "@mui/icons-material/PendingActions";
 import Search from "@mui/icons-material/Search";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 const initialRequests = [
   {
     id: 1,
@@ -128,48 +131,34 @@ export default function HROvertime() {
       title: "Total Requests",
       value: requests.length,
       icon: <AccessTime />,
-      color: "#6366f1",
+      color: "#2563EB",
     },
     {
       title: "Pending Requests",
       value: pending,
       icon: <PendingActions />,
-      color: "#f59e0b",
+      color: "#D97706",
     },
     {
       title: "Approved Requests",
       value: approved,
       icon: <CheckCircle />,
-      color: "#22c55e",
+      color: "#16A34A",
     },
     {
       title: "Approved Hours",
       value: `${totalHours} hrs`,
       icon: <AccessTime />,
-      color: "#06b6d4",
+      color: "#2563EB",
     },
   ];
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", md: "center" }}
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Overtime Management
-          </Typography>
-          <Typography color="text.secondary" mt={0.5}>
-            Review and manage employee overtime requests
-          </Typography>
-        </Box>
-      </Box>
+      <PageHeader
+        title="Overtime"
+        subtitle="Review and manage overtime requests"
+      />
 
       {/* Statistics */}
       <Grid container spacing={2} mb={3}>
@@ -308,7 +297,7 @@ export default function HROvertime() {
                         sx={{
                           width: 34,
                           height: 34,
-                          bgcolor: "#6366f1",
+                          bgcolor: "#2563EB",
                           fontSize: 12,
                         }}
                       >

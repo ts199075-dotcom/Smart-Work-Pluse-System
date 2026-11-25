@@ -22,6 +22,10 @@ import {
   CheckCircleOutlineRounded,
 } from "@mui/icons-material";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
+
 const statistics = [
   {
     title: "Total Employees",
@@ -52,15 +56,15 @@ const statistics = [
     value: "94.2%",
     description: "Today's attendance",
     icon: <EventAvailableOutlined />,
-    color: "#7C3AED",
-    bg: "#EDE9FE",
+    color: "#2563EB",
+    bg: "#EFF6FF",
   },
 ];
 
 const departments = [
   { name: "Development", count: 48, progress: 85, color: "#2563EB" },
   { name: "Marketing", count: 26, progress: 60, color: "#16A34A" },
-  { name: "Human Resources", count: 12, progress: 35, color: "#7C3AED" },
+  { name: "Human Resources", count: 12, progress: 35, color: "#2563EB" },
   { name: "Finance", count: 20, progress: 50, color: "#D97706" },
   { name: "Operations", count: 50, progress: 90, color: "#0891B2" },
 ];
@@ -110,27 +114,10 @@ function HRDashboard() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      {/* Welcome */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", sm: "center" }}
-        spacing={2}
-        mb={3}
-      >
-        <Box>
-          <Typography
-            sx={{ fontSize: { xs: 23, md: 28 }, fontWeight: 700, color: "#17365D" }}
-          >
-            Welcome back, HR Team
-          </Typography>
-          <Typography color="text.secondary" fontSize={14}>
-            Here's what's happening across your organization today.
-          </Typography>
-        </Box>
-
-        <Chip label="November 20, 2026" variant="outlined" />
-      </Stack>
+      <PageHeader
+        title="Welcome back, HR Team"
+        subtitle="Here's what's happening across your organization today."
+      />
 
       {/* Statistics */}
       <Box

@@ -30,6 +30,9 @@ import CheckCircle from "@mui/icons-material/CheckCircle";
 import Cancel from "@mui/icons-material/Cancel";
 import Visibility from "@mui/icons-material/Visibility";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 const initialAttendance = [
   {
     id: 1,
@@ -164,112 +167,69 @@ export default function HRAttendance() {
       title: "Total Employees",
       value: stats.total,
       icon: <People />,
-      color: "#6366f1",
+      color: "#2563EB",
     },
     {
       title: "Present",
       value: stats.present,
       icon: <CheckCircle />,
-      color: "#22c55e",
+      color: "#16A34A",
     },
     {
       title: "Late",
       value: stats.late,
       icon: <AccessTime />,
-      color: "#f59e0b",
+      color: "#D97706",
     },
     {
       title: "Absent",
       value: stats.absent,
       icon: <Cancel />,
-      color: "#ef4444",
+      color: "#DC2626",
     },
     {
       title: "On Leave",
       value: stats.onLeave,
       icon: <CalendarMonth />,
-      color: "#06b6d4",
+      color: "#2563EB",
     },
   ];
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
+      <PageHeader
+        title="Attendance"
+        subtitle="Manage employee attendance and working hours"
+        action={
+          <TextField type="date" size="small" defaultValue={today} sx={{ minWidth: 180 }} />
+        }
+      />
+
+      {/* Statistics */}
       <Box
         sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: { xs: "flex-start", md: "center" },
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(3, 1fr)",
+            lg: "repeat(5, 1fr)",
+          },
           gap: 2,
           mb: 3,
         }}
       >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            Attendance
-          </Typography>
-          <Typography color="text.secondary" mt={0.5}>
-            Manage employee attendance and working hours
-          </Typography>
-        </Box>
-
-        <TextField
-          type="date"
-          size="small"
-          defaultValue={today}
-          sx={{ minWidth: 180 }}
-        />
-      </Box>
-
-      {/* Statistics */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
         {statCards.map((card) => (
-          <Grid item xs={12} sm={6} md={4} lg={2.4} key={card.title}>
-            <Card
-              elevation={0}
-              sx={{
-                height: "100%",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 3,
-              }}
-            >
-              <CardContent>
-                <Box
-                  display="flex"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      mb={1}
-                    >
-                      {card.title}
-                    </Typography>
-                    <Typography variant="h4" fontWeight={700}>
-                      {card.value}
-                    </Typography>
-                  </Box>
-
-                  <Avatar
-                    sx={{
-                      bgcolor: `${card.color}18`,
-                      color: card.color,
-                      width: 48,
-                      height: 48,
-                    }}
-                  >
-                    {card.icon}
-                  </Avatar>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+          <StatCard
+            key={card.title}
+            title={card.title}
+            value={card.value}
+            icon={card.icon}
+            color={card.color}
+            bgColor="#EFF6FF"
+          />
         ))}
-      </Grid>
+      </Box>
 
       {/* Filters */}
       <Card
@@ -390,7 +350,7 @@ export default function HRAttendance() {
                         sx={{
                           width: 36,
                           height: 36,
-                          bgcolor: "#6366f1",
+                          bgcolor: "#2563EB",
                           fontSize: 13,
                         }}
                       >

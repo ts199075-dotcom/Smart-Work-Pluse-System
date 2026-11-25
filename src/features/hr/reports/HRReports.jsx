@@ -31,6 +31,9 @@ import TrendingUp from "@mui/icons-material/TrendingUp";
 import AccessTime from "@mui/icons-material/AccessTime";
 import PersonOff from "@mui/icons-material/PersonOff";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 const departmentsData = [
   {
     name: "IT",
@@ -100,57 +103,6 @@ const attendanceTrend = [
 
 const formatCurrency = (value) =>
   `${value.toLocaleString("en-US")} EGP`;
-
-function StatCard({ title, value, subtitle, icon, color }) {
-  return (
-    <Card
-      sx={{
-        height: "100%",
-        borderRadius: 3,
-        border: "1px solid",
-        borderColor: "divider",
-        boxShadow: "none",
-      }}
-    >
-      <CardContent>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Box>
-            <Typography variant="body2" color="text.secondary">
-              {title}
-            </Typography>
-
-            <Typography variant="h4" fontWeight={700} mt={1}>
-              {value}
-            </Typography>
-
-            <Typography variant="caption" color="text.secondary">
-              {subtitle}
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              width: 52,
-              height: 52,
-              borderRadius: 3,
-              bgcolor: `${color}15`,
-              color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {icon}
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
 
 function SectionTitle({ title, subtitle }) {
   return (
@@ -250,34 +202,11 @@ export default function HRReports() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 } }}>
-      {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        flexWrap="wrap"
-        gap={2}
-        mb={3}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700}>
-            HR Reports
-          </Typography>
-
-          <Typography color="text.secondary" mt={0.5}>
-            Workforce analytics and HR performance reports
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<Download />}
-          onClick={exportCSV}
-        >
-          Export CSV
-        </Button>
-      </Box>
+    <Box sx={{ pb: 4 }}>
+      <PageHeader
+        title="HR Reports"
+        subtitle="Analyze workforce metrics and export insights"
+      />
 
       {/* Filters */}
       <Card
@@ -338,7 +267,7 @@ export default function HRReports() {
             value={totals.employees}
             subtitle="Employees in selected departments"
             icon={<People />}
-            color="#6366f1"
+            color="#2563EB"
           />
         </Grid>
 
@@ -348,7 +277,7 @@ export default function HRReports() {
             value={`${attendanceRate}%`}
             subtitle="Current attendance overview"
             icon={<TrendingUp />}
-            color="#10b981"
+            color="#16A34A"
           />
         </Grid>
 
@@ -358,7 +287,7 @@ export default function HRReports() {
             value={formatCurrency(totals.payroll)}
             subtitle="Monthly payroll overview"
             icon={<Payments />}
-            color="#f59e0b"
+            color="#D97706"
           />
         </Grid>
 
@@ -523,7 +452,7 @@ export default function HRReports() {
                         height: `${item.attendance}%`,
                         minHeight: 10,
                         borderRadius: "6px 6px 0 0",
-                        bgcolor: "#6366f1",
+                        bgcolor: "#2563EB",
                         transition: "0.3s",
                         "&:hover": {
                           bgcolor: "#818cf8",

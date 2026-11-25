@@ -46,7 +46,6 @@ import HRPayroll from "./features/hr/payroll/HRPayroll";
 import HRLeaves from "./features/hr/leaves/HRLeaves";
 import HRFinesRewards from "./features/hr/fines-rewards/HRFinesRewards";
 import HRReports from "./features/hr/reports/HRReports";
-import HRNotifications from "./features/hr/notifications/HRNotifications";
 
 // Admin Pages
 import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
@@ -182,7 +181,7 @@ function getPageByRole(
         return <HRReports />;
 
       case "/notifications":
-        return <HRNotifications />;
+        return <Notifications role={role} />;
 
       default:
         return <PlaceholderPage title={label} />;

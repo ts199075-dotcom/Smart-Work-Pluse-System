@@ -7,6 +7,9 @@ import Search from "@mui/icons-material/Search";
 import People from "@mui/icons-material/People";
 import Close from "@mui/icons-material/Close";
 
+import StatCard from "../../../components/common/StatCard";
+import PageHeader from "../../../components/common/PageHeader";
+
 import {
   Alert,
   Avatar,
@@ -248,49 +251,24 @@ export default function HREmployees() {
 
   return (
     <Box
-      sx={{
-        p: { xs: 2, md: 3 },
-        backgroundColor: "#F8FAFC",
-        minHeight: "100vh",
-      }}
+      sx={{ pb: 4 }}
     >
-      {/* Page Header */}
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "flex-start", sm: "center" }}
-        spacing={2}
-        sx={{ mb: 3 }}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700} color="#172B4D">
-            Employees
-          </Typography>
+            <PageHeader
+        title="Employees"
+        subtitle="Manage your company employees and their information."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleOpenAdd}
+            sx={{ borderRadius: 2, px: 2.5, py: 1.1, textTransform: "none", fontWeight: 700, boxShadow: "none" }}
+          >
+            Add Employee
+          </Button>
+        }
+      />
 
-          <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-            Manage your company employees and their information.
-          </Typography>
-        </Box>
-
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleOpenAdd}
-          sx={{
-            backgroundColor: "#2563EB",
-            borderRadius: "10px",
-            px: 2.5,
-            py: 1.2,
-            textTransform: "none",
-            fontWeight: 600,
-            "&:hover": { backgroundColor: "#1D4ED8" },
-          }}
-        >
-          Add Employee
-        </Button>
-      </Stack>
-
-      {/* Statistics */}
+{/* Statistics */}
       <Box
         sx={{
           display: "grid",
@@ -304,58 +282,20 @@ export default function HREmployees() {
         }}
       >
         {[
-          {
-            title: "Total Employees",
-            value: employees.length,
-            color: "#2563EB",
-            description: "All registered employees",
-          },
-          {
-            title: "Active Employees",
-            value: activeCount,
-            color: "#16A34A",
-            description: "Currently working",
-          },
-          {
-            title: "On Leave",
-            value: onLeaveCount,
-            color: "#D97706",
-            description: "Currently on leave",
-          },
-          {
-            title: "Inactive",
-            value: inactiveCount,
-            color: "#64748B",
-            description: "Inactive employees",
-          },
+          { title: "Total Employees", value: employees.length, color: "#2563EB", bgColor: "#EFF6FF", description: "All registered employees" },
+          { title: "Active Employees", value: activeCount, color: "#16A34A", bgColor: "#F0FDF4", description: "Currently working" },
+          { title: "On Leave", value: onLeaveCount, color: "#D97706", bgColor: "#FFFBEB", description: "Currently on leave" },
+          { title: "Inactive", value: inactiveCount, color: "#64748B", bgColor: "#F1F5F9", description: "Inactive employees" },
         ].map((item) => (
-          <Card key={item.title} sx={cardStyle}>
-            <CardContent>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography color="text.secondary" fontWeight={600}>
-                  {item.title}
-                </Typography>
-
-                <People sx={{ color: item.color, fontSize: 26 }} />
-              </Stack>
-
-              <Typography
-                variant="h4"
-                fontWeight={700}
-                sx={{ color: item.color, my: 1 }}
-              >
-                {item.value}
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary">
-                {item.description}
-              </Typography>
-            </CardContent>
-          </Card>
+          <StatCard
+            key={item.title}
+            title={item.title}
+            value={item.value}
+            subtitle={item.description}
+            icon={<People />}
+            color={item.color}
+            bgColor={item.bgColor}
+          />
         ))}
       </Box>
 
